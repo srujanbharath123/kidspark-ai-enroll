@@ -1,8 +1,12 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CTASection = () => {
+  const { user } = useAuth();
+
   return (
     <section className="py-24 bg-background relative overflow-hidden">
       <div className="absolute inset-0 gradient-hero opacity-50" />
@@ -29,11 +33,13 @@ const CTASection = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="hero" size="xl">
-              Start Enrollment <ArrowRight className="w-5 h-5" />
+            <Button variant="hero" size="xl" asChild>
+              <Link to={user ? "/dashboard" : "/signup"}>
+                {user ? "Go to Dashboard" : "Start Enrollment"} <ArrowRight className="w-5 h-5" />
+              </Link>
             </Button>
-            <Button variant="hero-outline" size="xl">
-              Talk to Us
+            <Button variant="hero-outline" size="xl" asChild>
+              <a href="#courses">View Courses</a>
             </Button>
           </div>
         </motion.div>

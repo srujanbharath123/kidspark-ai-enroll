@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Rocket, Brain, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const FloatingIcon = ({ children, delay, className }: { children: React.ReactNode; delay: number; className?: string }) => (
   <motion.div
@@ -15,9 +17,10 @@ const FloatingIcon = ({ children, delay, className }: { children: React.ReactNod
 );
 
 const HeroSection = () => {
+  const { user } = useAuth();
+
   return (
     <section className="relative min-h-screen gradient-hero overflow-hidden flex items-center pt-16">
-      {/* Decorative blobs */}
       <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
       <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/5 rounded-full blur-3xl" />
@@ -62,20 +65,33 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Button variant="hero" size="xl">
-              Enroll Now
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-            <Button variant="hero-outline" size="xl">
-              View Courses
-            </Button>
+            {user ? (
+              <Button variant="hero" size="xl" asChild>
+                <Link to="/dashboard">
+                  Go to Dashboard
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="hero" size="xl" asChild>
+                  <Link to="/signup">
+                    Enroll Now
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
+                </Button>
+                <Button variant="hero-outline" size="xl" asChild>
+                  <a href="#courses">View Courses</a>
+                </Button>
+              </>
+            )}
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.7, delay: 0.5 }}
-            className="mt-12 flex items-center justify-center gap-8 text-sm text-muted-foreground"
+            className="mt-12 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm text-muted-foreground"
           >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-success" />
@@ -92,7 +108,6 @@ const HeroSection = () => {
           </motion.div>
         </div>
 
-        {/* Floating icons */}
         <FloatingIcon delay={0} className="top-10 left-[10%] hidden lg:flex">
           <Brain className="w-7 h-7 text-primary" />
         </FloatingIcon>

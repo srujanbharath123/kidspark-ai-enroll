@@ -34,7 +34,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const adminLinks = [
     { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-    { href: "/dashboard/courses", label: "Courses", icon: BookOpen },
+    { href: "/dashboard/manage-courses", label: "Courses", icon: BookOpen },
     { href: "/dashboard/enrollments", label: "Enrollments", icon: CreditCard },
     { href: "/dashboard/users", label: "Users", icon: Users },
     { href: "/dashboard/sessions", label: "Sessions", icon: Calendar },

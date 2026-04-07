@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X, Sparkles, LayoutDashboard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, profile, role, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const navLinks = [
     { label: "Courses", href: "#courses" },
@@ -14,17 +17,22 @@ const Navbar = () => {
     { label: "FAQ", href: "#faq" },
   ];
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/50">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <a href="#" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-primary-foreground" />
           </div>
           <span className="font-display text-xl font-bold text-foreground">
             Tech<span className="text-gradient">Windows</span>
           </span>
-        </a>
+        </Link>
 
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
@@ -39,8 +47,23 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild><Link to="/login">Log In</Link></Button>
-          <Button variant="hero" size="sm" asChild><Link to="/signup">Enroll Now</Link></Button>
+          {user ? (
+            <>
+              <span className="text-sm text-muted-foreground">
+                Hi, {profile?.full_name?.split(" ")[0] || "User"}
+                <span className="ml-1 text-xs capitalize text-primary">({role})</span>
+              </span>
+              <Button variant="hero" size="sm" asChild>
+                <Link to="/dashboard"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>Sign Out</Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" asChild><Link to="/login">Log In</Link></Button>
+              <Button variant="hero" size="sm" asChild><Link to="/signup">Enroll Now</Link></Button>
+            </>
+          )}
         </div>
 
         <button
@@ -71,8 +94,25 @@ const Navbar = () => {
                 </a>
               ))}
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1" asChild><Link to="/login">Log In</Link></Button>
-                <Button variant="hero" size="sm" className="flex-1" asChild><Link to="/signup">Enroll Now</Link></Button>
+                {user ? (
+                  <>
+                    <Button variant="hero" size="sm" className="flex-1" asChild>
+                      <Link to="/dashboard" onClick={() => setMobileOpen(false)}>Dashboard</Link>
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { handleSignOut(); setMobileOpen(false); }}>
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" className="flex-1" asChild>
+                      <Link to="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
+                    </Button>
+                    <Button variant="hero" size="sm" className="flex-1" asChild>
+                      <Link to="/signup" onClick={() => setMobileOpen(false)}>Enroll Now</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
