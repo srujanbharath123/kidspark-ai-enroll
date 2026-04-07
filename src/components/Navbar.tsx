@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,8 +39,8 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm">Log In</Button>
-          <Button variant="hero" size="sm">Enroll Now</Button>
+          <Button variant="ghost" size="sm" asChild><Link to="/login">Log In</Link></Button>
+          <Button variant="hero" size="sm" asChild><Link to="/signup">Enroll Now</Link></Button>
         </div>
 
         <button
@@ -70,8 +71,8 @@ const Navbar = () => {
                 </a>
               ))}
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1">Log In</Button>
-                <Button variant="hero" size="sm" className="flex-1">Enroll Now</Button>
+                <Button variant="outline" size="sm" className="flex-1" asChild><Link to="/login">Log In</Link></Button>
+                <Button variant="hero" size="sm" className="flex-1" asChild><Link to="/signup">Enroll Now</Link></Button>
               </div>
             </div>
           </motion.div>
