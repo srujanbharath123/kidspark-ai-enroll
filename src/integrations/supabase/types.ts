@@ -14,16 +14,294 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      children: {
+        Row: {
+          age: number
+          created_at: string
+          id: string
+          name: string
+          parent_id: string
+          updated_at: string
+        }
+        Insert: {
+          age: number
+          created_at?: string
+          id?: string
+          name: string
+          parent_id: string
+          updated_at?: string
+        }
+        Update: {
+          age?: number
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      courses: {
+        Row: {
+          created_at: string
+          description: string
+          discount_price: number | null
+          duration: string
+          features: string[] | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          price: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          discount_price?: number | null
+          duration?: string
+          features?: string[] | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          price?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          discount_price?: number | null
+          duration?: string
+          features?: string[] | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          price?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      enrollments: {
+        Row: {
+          child_id: string
+          course_id: string
+          created_at: string
+          id: string
+          order_id: string | null
+          parent_id: string
+          payment_id: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          course_id: string
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          parent_id: string
+          payment_id?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          parent_id?: string
+          payment_id?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollments_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          availability_id: string | null
+          child_id: string | null
+          course_id: string | null
+          created_at: string
+          date: string
+          end_time: string
+          id: string
+          meet_link: string | null
+          notes: string | null
+          parent_id: string
+          start_time: string
+          status: Database["public"]["Enums"]["session_status"]
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          availability_id?: string | null
+          child_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          date: string
+          end_time: string
+          id?: string
+          meet_link?: string | null
+          notes?: string | null
+          parent_id: string
+          start_time: string
+          status?: Database["public"]["Enums"]["session_status"]
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          availability_id?: string | null
+          child_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          date?: string
+          end_time?: string
+          id?: string
+          meet_link?: string | null
+          notes?: string | null
+          parent_id?: string
+          start_time?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_availability_id_fkey"
+            columns: ["availability_id"]
+            isOneToOne: false
+            referencedRelation: "trainer_availability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainer_availability: {
+        Row: {
+          created_at: string
+          date: string
+          end_time: string
+          id: string
+          is_booked: boolean
+          start_time: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          end_time: string
+          id?: string
+          is_booked?: boolean
+          start_time: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          end_time?: string
+          id?: string
+          is_booked?: boolean
+          start_time?: string
+          trainer_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "parent" | "trainer" | "admin"
+      payment_status: "pending" | "completed" | "failed" | "refunded"
+      session_status: "pending" | "approved" | "completed" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +428,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["parent", "trainer", "admin"],
+      payment_status: ["pending", "completed", "failed", "refunded"],
+      session_status: ["pending", "approved", "completed", "rejected"],
+    },
   },
 } as const
