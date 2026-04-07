@@ -142,7 +142,7 @@ const SessionsPage = () => {
     }
   };
 
-  const updateSessionStatus = async (sessionId: string, status: string) => {
+  const updateSessionStatus = async (sessionId: string, status: "pending" | "approved" | "completed" | "rejected") => {
     const { error } = await supabase.from("sessions").update({ status }).eq("id", sessionId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
