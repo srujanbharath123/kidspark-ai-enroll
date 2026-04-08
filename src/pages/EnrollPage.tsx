@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
 import {
   Check, CreditCard, Loader2, ArrowLeft, ArrowRight,
-  Sparkles, GraduationCap, User, ShieldCheck, Calendar, Clock, Phone,
+  Sparkles, GraduationCap, User, Calendar, Clock, Mail,
 } from "lucide-react";
 
 interface Course {
@@ -33,7 +32,7 @@ interface AvailableSlot {
   trainer_name: string;
 }
 
-const STEPS = ["Course", "Details", "Slot", "Verify", "Pay"];
+const STEPS = ["Course", "Details", "Slot", "Pay"];
 
 const EnrollPage = () => {
   const { user, profile } = useAuth();
@@ -53,19 +52,13 @@ const EnrollPage = () => {
 
   // Parent info
   const [parentName, setParentName] = useState("");
+  const [parentEmail, setParentEmail] = useState("");
   const [parentPhone, setParentPhone] = useState("");
 
   // Slot booking
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
-
-  // Phone verification
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -79,23 +72,22 @@ const EnrollPage = () => {
         .select("id, title, description, price, discount_price, duration, features, image_url")
         .eq("is_active", true)
         .order("created_at");
-      if (data) setCourses(data);
+
+      if (data) {
+        setCourses(data);
+        const preselect = searchParams.get("course");
+        if (preselect) {
+          const found = data.find((c) => c.id === preselect);
+          if (found) {
+            setSelectedCourse(found);
+            setStep(1);
+          }
+        }
+      }
       setLoading(false);
     };
     fetchCourses();
-  }, []);
-
-  // Auto-select course from URL param
-  useEffect(() => {
-    const courseId = searchParams.get("course");
-    if (courseId && courses.length > 0) {
-      const found = courses.find((c) => c.id === courseId);
-      if (found) {
-        setSelectedCourse(found);
-        setStep(1);
-      }
-    }
-  }, [searchParams, courses]);
+  }, [searchParams]);
 
   // Fetch available slots when reaching step 2
   useEffect(() => {
@@ -106,8 +98,8 @@ const EnrollPage = () => {
   useEffect(() => {
     if (user && profile) {
       if (!parentName) setParentName(profile.full_name || "");
+      if (!parentEmail && user.email) setParentEmail(user.email);
       if (!parentPhone && profile.phone) setParentPhone(profile.phone);
-      setOtpVerified(true); // already authenticated
     }
   }, [user, profile]);
 
@@ -152,81 +144,60 @@ const EnrollPage = () => {
     childClass.trim().length >= 1 &&
     childSchool.trim().length >= 2 &&
     parentName.trim().length >= 2 &&
-    parentPhone.trim().length >= 10;
+    parentEmail.trim().includes("@") &&
+    parentPhone.trim().replace(/\D/g, "").length >= 10;
 
-  const formatPhone = (phone: string) => {
-    const cleaned = phone.replace(/\D/g, "");
-    if (cleaned.startsWith("91") && cleaned.length > 10) return `+${cleaned}`;
-    if (cleaned.length === 10) return `+91${cleaned}`;
-    return `+${cleaned}`;
-  };
+  const handleSignUpAndPay = async () => {
+    // If not logged in, create account first
+    if (!user) {
+      try {
+        const tempPassword = `Enroll_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: parentEmail.trim(),
+          password: tempPassword,
+          options: {
+            data: { full_name: parentName.trim(), role: "parent" },
+            emailRedirectTo: window.location.origin,
+          },
+        });
 
-  const handleSendOtp = async () => {
-    if (user) {
-      setOtpVerified(true);
-      setStep(4);
-      return;
-    }
+        if (signUpError) {
+          // If user exists, try signing in — they need to use login page
+          if (signUpError.message.includes("already registered")) {
+            toast({
+              title: "Account already exists",
+              description: "Please login first, then enroll from your dashboard.",
+              variant: "destructive",
+            });
+            navigate("/login");
+            return;
+          }
+          throw signUpError;
+        }
 
-    setSendingOtp(true);
-    try {
-      const formattedPhone = formatPhone(parentPhone);
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone,
-        options: {
-          data: { full_name: parentName, role: "parent" },
-        },
-      });
+        // Update phone on profile
+        if (signUpData.user) {
+          await supabase
+            .from("profiles")
+            .update({ phone: parentPhone.trim() })
+            .eq("user_id", signUpData.user.id);
+        }
 
-      if (error) throw error;
-
-      setOtpSent(true);
-      toast({ title: "OTP sent! 📱", description: `A verification code has been sent to ${formattedPhone}` });
-    } catch (err: any) {
-      toast({ title: "Failed to send OTP", description: err.message, variant: "destructive" });
-    } finally {
-      setSendingOtp(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    setVerifyingOtp(true);
-    try {
-      const formattedPhone = formatPhone(parentPhone);
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: formattedPhone,
-        token: otp,
-        type: "sms",
-      });
-
-      if (error) throw error;
-
-      if (data.user) {
-        // Update profile with phone
-        await supabase
-          .from("profiles")
-          .update({ phone: formattedPhone })
-          .eq("user_id", data.user.id);
+        toast({ title: "Account created! 🎉", description: "Proceeding to payment..." });
+      } catch (err: any) {
+        toast({ title: "Account creation failed", description: err.message, variant: "destructive" });
+        return;
       }
-
-      setOtpVerified(true);
-      toast({ title: "Phone verified! ✅", description: "You can now proceed to payment." });
-    } catch (err: any) {
-      toast({ title: "Verification failed", description: err.message, variant: "destructive" });
-    } finally {
-      setVerifyingOtp(false);
     }
+
+    // Now proceed with payment
+    await handlePayment();
   };
 
   const handlePayment = async () => {
-    // Re-check auth state
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
-      toast({ title: "Session expired", description: "Please verify your phone again.", variant: "destructive" });
-      setOtpVerified(false);
-      setOtpSent(false);
-      setOtp("");
-      setStep(3);
+      toast({ title: "Not authenticated", description: "Please try again or login first.", variant: "destructive" });
       return;
     }
 
@@ -307,6 +278,7 @@ const EnrollPage = () => {
         },
         prefill: {
           name: parentName,
+          email: parentEmail,
           contact: parentPhone,
         },
         theme: { color: "#7c3aed" },
@@ -480,11 +452,17 @@ const EnrollPage = () => {
                       disabled={!!user} />
                   </div>
                   <div>
+                    <Label htmlFor="parentEmail" className="text-sm font-semibold">Email *</Label>
+                    <Input id="parentEmail" type="email" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)}
+                      placeholder="e.g. parent@example.com" className="mt-1.5 rounded-xl"
+                      disabled={!!user} />
+                    <p className="text-xs text-muted-foreground mt-1">This will be used for your login account.</p>
+                  </div>
+                  <div>
                     <Label htmlFor="parentPhone" className="text-sm font-semibold">Phone Number *</Label>
                     <Input id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)}
                       placeholder="e.g. 9876543210" className="mt-1.5 rounded-xl" maxLength={15}
                       disabled={!!user && !!profile?.phone} />
-                    <p className="text-xs text-muted-foreground mt-1">Indian mobile number (10 digits). You'll verify this via OTP.</p>
                   </div>
                 </div>
               </div>
@@ -560,124 +538,14 @@ const EnrollPage = () => {
             <div className="flex justify-between mt-8">
               <Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
               <Button variant="hero" onClick={() => setStep(3)} className="px-8">
-                {selectedSlot ? "Verify Phone" : "Skip & Verify"} <ArrowRight className="w-4 h-4 ml-1" />
+                {selectedSlot ? "Review & Pay" : "Skip & Pay"} <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Phone Verification */}
-        {step === 3 && (
-          <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold font-display mb-2 text-center">Verify Your Phone</h2>
-            <p className="text-sm text-muted-foreground text-center mb-8">
-              {user ? "You're already verified! Proceed to payment." : "We'll send an OTP to verify your phone number"}
-            </p>
-
-            <div className="bg-card rounded-2xl border border-border/50 p-8 shadow-card">
-              {user ? (
-                // Already logged in
-                <div className="text-center space-y-4">
-                   <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                     <ShieldCheck className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">Already Verified</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Signed in as <span className="font-semibold">{profile?.full_name || user.email || user.phone}</span>
-                    </p>
-                  </div>
-                  <Button variant="hero" className="w-full" onClick={() => setStep(4)}>
-                    Proceed to Payment <ArrowRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
-              ) : !otpSent ? (
-                // Send OTP
-                <div className="space-y-6">
-                  <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <Phone className="w-8 h-8 text-primary" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">
-                      We'll send an OTP to <span className="font-semibold text-foreground">+91{parentPhone.replace(/\D/g, "").slice(-10)}</span>
-                    </p>
-                  </div>
-                  <Button variant="hero" className="w-full h-12" onClick={handleSendOtp} disabled={sendingOtp}>
-                    {sendingOtp ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> Sending OTP...</>
-                    ) : (
-                      <><Phone className="w-5 h-5" /> Send OTP</>
-                    )}
-                  </Button>
-                </div>
-              ) : !otpVerified ? (
-                // Verify OTP
-                <div className="space-y-6">
-                  <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <ShieldCheck className="w-8 h-8 text-primary" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-semibold mb-1">Enter the 6-digit code</p>
-                    <p className="text-xs text-muted-foreground">
-                      Sent to +91{parentPhone.replace(/\D/g, "").slice(-10)}
-                    </p>
-                  </div>
-                  <div className="flex justify-center">
-                    <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                  <Button
-                    variant="hero"
-                    className="w-full h-12"
-                    onClick={handleVerifyOtp}
-                    disabled={otp.length < 6 || verifyingOtp}
-                  >
-                    {verifyingOtp ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</>
-                    ) : (
-                      <><ShieldCheck className="w-5 h-5" /> Verify OTP</>
-                    )}
-                  </Button>
-                  <button
-                    onClick={() => { setOtpSent(false); setOtp(""); }}
-                    className="text-xs text-primary hover:underline w-full text-center"
-                  >
-                    Resend OTP
-                  </button>
-                </div>
-              ) : (
-                // Verified
-                <div className="text-center space-y-4">
-                   <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                     <Check className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">Phone Verified! ✅</h3>
-                    <p className="text-sm text-muted-foreground">Your account has been created. Proceed to payment.</p>
-                  </div>
-                  <Button variant="hero" className="w-full" onClick={() => setStep(4)}>
-                    Proceed to Payment <ArrowRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-start mt-8">
-              <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Review & Pay */}
-        {step === 4 && selectedCourse && (
+        {/* Step 3: Review & Pay */}
+        {step === 3 && selectedCourse && (
           <div className="max-w-md mx-auto">
             <h2 className="text-2xl font-bold font-display mb-2 text-center">Review & Pay</h2>
             <p className="text-sm text-muted-foreground text-center mb-8">Confirm everything and complete payment</p>
@@ -715,13 +583,12 @@ const EnrollPage = () => {
               <div className="bg-muted/30 rounded-xl p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-5 h-5 text-muted-foreground" />
+                    <Mail className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div>
                     <h3 className="font-bold">{parentName}</h3>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-primary" /> +91{parentPhone.replace(/\D/g, "").slice(-10)} (verified)
-                    </p>
+                    <p className="text-xs text-muted-foreground">{parentEmail}</p>
+                    <p className="text-xs text-muted-foreground">📞 {parentPhone}</p>
                   </div>
                 </div>
               </div>
@@ -760,7 +627,7 @@ const EnrollPage = () => {
                 </div>
               </div>
 
-              <Button variant="hero" className="w-full h-12 text-base" onClick={handlePayment} disabled={paying}>
+              <Button variant="hero" className="w-full h-12 text-base" onClick={user ? handlePayment : handleSignUpAndPay} disabled={paying}>
                 {paying ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
                 ) : (
@@ -768,13 +635,13 @@ const EnrollPage = () => {
                 )}
               </Button>
 
-              <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> Secured by Razorpay · 100% safe payment
+              <p className="text-xs text-center text-muted-foreground">
+                Secured by Razorpay · 100% safe payment
               </p>
             </div>
 
             <div className="flex justify-start mt-8">
-              <Button variant="outline" onClick={() => setStep(3)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
+              <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
             </div>
           </div>
         )}
