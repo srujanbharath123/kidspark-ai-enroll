@@ -47,9 +47,12 @@ interface Session {
   parent_id: string;
   child_id: string | null;
   course_id: string | null;
+  meet_link: string | null;
   trainer_name?: string;
   child_name?: string;
   course_title?: string;
+  parent_phone?: string;
+  parent_email?: string;
 }
 
 const AdminSessionsPage = () => {
