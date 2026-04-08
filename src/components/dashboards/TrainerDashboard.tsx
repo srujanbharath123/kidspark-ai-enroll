@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Users, CheckCircle, Clock, ArrowRight, GraduationCap, Link2, MessageCircle, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 interface PendingSession {
   id: string;
