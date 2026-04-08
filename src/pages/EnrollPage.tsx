@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
 import {
   Check, CreditCard, Loader2, ArrowLeft, ArrowRight,
-  Sparkles, GraduationCap, User, ShieldCheck, Calendar, Clock,
+  Sparkles, GraduationCap, User, ShieldCheck, Calendar, Clock, Phone,
 } from "lucide-react";
 
 interface Course {
@@ -32,7 +33,7 @@ interface AvailableSlot {
   trainer_name: string;
 }
 
-const STEPS = ["Select Course", "Student Details", "Book Slot", "Pay"];
+const STEPS = ["Course", "Details", "Slot", "Verify", "Pay"];
 
 const EnrollPage = () => {
   const { user, profile } = useAuth();
@@ -50,10 +51,21 @@ const EnrollPage = () => {
   const [childClass, setChildClass] = useState("");
   const [childSchool, setChildSchool] = useState("");
 
+  // Parent info
+  const [parentName, setParentName] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+
   // Slot booking
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Phone verification
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -87,10 +99,17 @@ const EnrollPage = () => {
 
   // Fetch available slots when reaching step 2
   useEffect(() => {
-    if (step === 2) {
-      fetchSlots();
-    }
+    if (step === 2) fetchSlots();
   }, [step]);
+
+  // If user already logged in, pre-fill parent info
+  useEffect(() => {
+    if (user && profile) {
+      if (!parentName) setParentName(profile.full_name || "");
+      if (!parentPhone && profile.phone) setParentPhone(profile.phone);
+      setOtpVerified(true); // already authenticated
+    }
+  }, [user, profile]);
 
   const fetchSlots = async () => {
     setSlotsLoading(true);
@@ -131,19 +150,90 @@ const EnrollPage = () => {
     Number(childAge) >= 4 &&
     Number(childAge) <= 18 &&
     childClass.trim().length >= 1 &&
-    childSchool.trim().length >= 2;
+    childSchool.trim().length >= 2 &&
+    parentName.trim().length >= 2 &&
+    parentPhone.trim().length >= 10;
+
+  const formatPhone = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, "");
+    if (cleaned.startsWith("91") && cleaned.length > 10) return `+${cleaned}`;
+    if (cleaned.length === 10) return `+91${cleaned}`;
+    return `+${cleaned}`;
+  };
+
+  const handleSendOtp = async () => {
+    if (user) {
+      setOtpVerified(true);
+      setStep(4);
+      return;
+    }
+
+    setSendingOtp(true);
+    try {
+      const formattedPhone = formatPhone(parentPhone);
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: formattedPhone,
+        options: {
+          data: { full_name: parentName, role: "parent" },
+        },
+      });
+
+      if (error) throw error;
+
+      setOtpSent(true);
+      toast({ title: "OTP sent! 📱", description: `A verification code has been sent to ${formattedPhone}` });
+    } catch (err: any) {
+      toast({ title: "Failed to send OTP", description: err.message, variant: "destructive" });
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setVerifyingOtp(true);
+    try {
+      const formattedPhone = formatPhone(parentPhone);
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: formattedPhone,
+        token: otp,
+        type: "sms",
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        // Update profile with phone
+        await supabase
+          .from("profiles")
+          .update({ phone: formattedPhone })
+          .eq("user_id", data.user.id);
+      }
+
+      setOtpVerified(true);
+      toast({ title: "Phone verified! ✅", description: "You can now proceed to payment." });
+    } catch (err: any) {
+      toast({ title: "Verification failed", description: err.message, variant: "destructive" });
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   const handlePayment = async () => {
-    if (!user) {
-      toast({ title: "Please log in first", description: "You need an account to enroll.", variant: "destructive" });
-      navigate(`/login?redirect=/enroll${selectedCourse ? `?course=${selectedCourse.id}` : ""}`);
+    // Re-check auth state
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      toast({ title: "Session expired", description: "Please verify your phone again.", variant: "destructive" });
+      setOtpVerified(false);
+      setOtpSent(false);
+      setOtp("");
+      setStep(3);
       return;
     }
 
     if (!selectedCourse || !canProceedStep2) return;
 
     if (!window.Razorpay) {
-      toast({ title: "Payment gateway loading...", description: "Please try again.", variant: "destructive" });
+      toast({ title: "Payment gateway loading...", description: "Please try again in a moment.", variant: "destructive" });
       return;
     }
 
@@ -216,8 +306,8 @@ const EnrollPage = () => {
           }
         },
         prefill: {
-          name: profile?.full_name || "",
-          email: user.email || "",
+          name: parentName,
+          contact: parentPhone,
         },
         theme: { color: "#7c3aed" },
         modal: {
@@ -341,19 +431,21 @@ const EnrollPage = () => {
           </div>
         )}
 
-        {/* Step 1: Student Details */}
+        {/* Step 1: Student & Parent Details */}
         {step === 1 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-2xl font-bold font-display mb-2 text-center">Student Details</h2>
-            <p className="text-sm text-muted-foreground text-center mb-8">Fill in your child's complete information</p>
+            <h2 className="text-2xl font-bold font-display mb-2 text-center">Student & Parent Details</h2>
+            <p className="text-sm text-muted-foreground text-center mb-8">Fill in complete information</p>
 
             <div className="bg-card rounded-2xl border border-border/50 p-8 shadow-card space-y-5">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-2">
                 <User className="w-8 h-8 text-primary" />
               </div>
 
+              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Student Info</h3>
+
               <div>
-                <Label htmlFor="childName" className="text-sm font-semibold">Full Name *</Label>
+                <Label htmlFor="childName" className="text-sm font-semibold">Student Full Name *</Label>
                 <Input id="childName" value={childName} onChange={(e) => setChildName(e.target.value)}
                   placeholder="e.g. Aarav Sharma" className="mt-1.5 rounded-xl" maxLength={100} />
               </div>
@@ -377,20 +469,25 @@ const EnrollPage = () => {
                   placeholder="e.g. Delhi Public School" className="mt-1.5 rounded-xl" maxLength={150} />
               </div>
 
-              {!user && (
-                <div className="bg-accent/10 border border-accent/20 rounded-xl p-4 text-sm">
-                  <p className="font-semibold text-accent flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4" /> Account Required
-                  </p>
-                  <p className="text-muted-foreground mt-1">
-                    You'll need to{" "}
-                    <Link to={`/login?redirect=/enroll${selectedCourse ? `?course=${selectedCourse.id}` : ""}`} className="text-primary underline">log in</Link>
-                    {" "}or{" "}
-                    <Link to={`/signup?redirect=/enroll${selectedCourse ? `?course=${selectedCourse.id}` : ""}`} className="text-primary underline">sign up</Link>
-                    {" "}before paying.
-                  </p>
+              <div className="border-t border-border/50 pt-5">
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Parent Info</h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="parentName" className="text-sm font-semibold">Parent Full Name *</Label>
+                    <Input id="parentName" value={parentName} onChange={(e) => setParentName(e.target.value)}
+                      placeholder="e.g. Rajesh Sharma" className="mt-1.5 rounded-xl" maxLength={100}
+                      disabled={!!user} />
+                  </div>
+                  <div>
+                    <Label htmlFor="parentPhone" className="text-sm font-semibold">Phone Number *</Label>
+                    <Input id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)}
+                      placeholder="e.g. 9876543210" className="mt-1.5 rounded-xl" maxLength={15}
+                      disabled={!!user && !!profile?.phone} />
+                    <p className="text-xs text-muted-foreground mt-1">Indian mobile number (10 digits). You'll verify this via OTP.</p>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="flex justify-between mt-8">
@@ -434,9 +531,7 @@ const EnrollPage = () => {
                             key={slot.id}
                             onClick={() => setSelectedSlot(isSelected ? null : slot)}
                             className={`bg-card rounded-xl border-2 p-4 text-left transition-all ${
-                              isSelected
-                                ? "border-primary ring-2 ring-primary/20"
-                                : "border-border/50 hover:border-primary/30"
+                              isSelected ? "border-primary ring-2 ring-primary/20" : "border-border/50 hover:border-primary/30"
                             }`}
                           >
                             <div className="flex items-center justify-between">
@@ -465,14 +560,124 @@ const EnrollPage = () => {
             <div className="flex justify-between mt-8">
               <Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
               <Button variant="hero" onClick={() => setStep(3)} className="px-8">
-                {selectedSlot ? "Review & Pay" : "Skip & Pay"} <ArrowRight className="w-4 h-4 ml-1" />
+                {selectedSlot ? "Verify Phone" : "Skip & Verify"} <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Review & Pay */}
-        {step === 3 && selectedCourse && (
+        {/* Step 3: Phone Verification */}
+        {step === 3 && (
+          <div className="max-w-md mx-auto">
+            <h2 className="text-2xl font-bold font-display mb-2 text-center">Verify Your Phone</h2>
+            <p className="text-sm text-muted-foreground text-center mb-8">
+              {user ? "You're already verified! Proceed to payment." : "We'll send an OTP to verify your phone number"}
+            </p>
+
+            <div className="bg-card rounded-2xl border border-border/50 p-8 shadow-card">
+              {user ? (
+                // Already logged in
+                <div className="text-center space-y-4">
+                   <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                     <ShieldCheck className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Already Verified</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Signed in as <span className="font-semibold">{profile?.full_name || user.email || user.phone}</span>
+                    </p>
+                  </div>
+                  <Button variant="hero" className="w-full" onClick={() => setStep(4)}>
+                    Proceed to Payment <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              ) : !otpSent ? (
+                // Send OTP
+                <div className="space-y-6">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <Phone className="w-8 h-8 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">
+                      We'll send an OTP to <span className="font-semibold text-foreground">+91{parentPhone.replace(/\D/g, "").slice(-10)}</span>
+                    </p>
+                  </div>
+                  <Button variant="hero" className="w-full h-12" onClick={handleSendOtp} disabled={sendingOtp}>
+                    {sendingOtp ? (
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Sending OTP...</>
+                    ) : (
+                      <><Phone className="w-5 h-5" /> Send OTP</>
+                    )}
+                  </Button>
+                </div>
+              ) : !otpVerified ? (
+                // Verify OTP
+                <div className="space-y-6">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <ShieldCheck className="w-8 h-8 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold mb-1">Enter the 6-digit code</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sent to +91{parentPhone.replace(/\D/g, "").slice(-10)}
+                    </p>
+                  </div>
+                  <div className="flex justify-center">
+                    <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                  <Button
+                    variant="hero"
+                    className="w-full h-12"
+                    onClick={handleVerifyOtp}
+                    disabled={otp.length < 6 || verifyingOtp}
+                  >
+                    {verifyingOtp ? (
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</>
+                    ) : (
+                      <><ShieldCheck className="w-5 h-5" /> Verify OTP</>
+                    )}
+                  </Button>
+                  <button
+                    onClick={() => { setOtpSent(false); setOtp(""); }}
+                    className="text-xs text-primary hover:underline w-full text-center"
+                  >
+                    Resend OTP
+                  </button>
+                </div>
+              ) : (
+                // Verified
+                <div className="text-center space-y-4">
+                   <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                     <Check className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Phone Verified! ✅</h3>
+                    <p className="text-sm text-muted-foreground">Your account has been created. Proceed to payment.</p>
+                  </div>
+                  <Button variant="hero" className="w-full" onClick={() => setStep(4)}>
+                    Proceed to Payment <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-start mt-8">
+              <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Review & Pay */}
+        {step === 4 && selectedCourse && (
           <div className="max-w-md mx-auto">
             <h2 className="text-2xl font-bold font-display mb-2 text-center">Review & Pay</h2>
             <p className="text-sm text-muted-foreground text-center mb-8">Confirm everything and complete payment</p>
@@ -501,6 +706,21 @@ const EnrollPage = () => {
                     <h3 className="font-bold">{childName}</h3>
                     <p className="text-xs text-muted-foreground">
                       Age {childAge} · Class {childClass} · {childSchool}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Parent */}
+              <div className="bg-muted/30 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold">{parentName}</h3>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-primary" /> +91{parentPhone.replace(/\D/g, "").slice(-10)} (verified)
                     </p>
                   </div>
                 </div>
@@ -540,24 +760,13 @@ const EnrollPage = () => {
                 </div>
               </div>
 
-              <Button variant="hero" className="w-full h-12 text-base" onClick={handlePayment} disabled={paying || !user}>
+              <Button variant="hero" className="w-full h-12 text-base" onClick={handlePayment} disabled={paying}>
                 {paying ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
-                ) : !user ? (
-                  "Log in to Pay"
                 ) : (
                   <><CreditCard className="w-5 h-5" /> Pay ₹{effectivePrice}</>
                 )}
               </Button>
-
-              {!user && (
-                <p className="text-xs text-center text-muted-foreground">
-                  <Link to={`/login?redirect=/enroll?course=${selectedCourse.id}`} className="text-primary underline">Log in</Link>
-                  {" "}or{" "}
-                  <Link to={`/signup?redirect=/enroll?course=${selectedCourse.id}`} className="text-primary underline">create an account</Link>
-                  {" "}to complete enrollment.
-                </p>
-              )}
 
               <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
                 <ShieldCheck className="w-3 h-3" /> Secured by Razorpay · 100% safe payment
@@ -565,7 +774,7 @@ const EnrollPage = () => {
             </div>
 
             <div className="flex justify-start mt-8">
-              <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
+              <Button variant="outline" onClick={() => setStep(3)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
             </div>
           </div>
         )}
