@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Users, CheckCircle, Clock, ArrowRight, GraduationCap } from "lucide-react";
+import { Calendar, Users, CheckCircle, Clock, ArrowRight, GraduationCap, Link2, MessageCircle, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
