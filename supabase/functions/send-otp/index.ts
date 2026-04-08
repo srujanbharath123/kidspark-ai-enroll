@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
-const DUMMY_PHONE = "+919999999999";
+const DUMMY_PHONES = ["+919999999999", "+917995670899"];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
