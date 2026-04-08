@@ -18,6 +18,7 @@ import EnrollmentsPage from "./pages/EnrollmentsPage";
 import SessionsPage from "./pages/SessionsPage";
 import TrainerAvailabilityPage from "./pages/TrainerAvailabilityPage";
 import UsersPage from "./pages/UsersPage";
+import AdminSessionsPage from "./pages/AdminSessionsPage";
 import EnrollPage from "./pages/EnrollPage";
 import NotFound from "./pages/NotFound";
 
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/dashboard/sessions" element={<ProtectedRoute><SessionsPage /></ProtectedRoute>} />
             <Route path="/dashboard/availability" element={<ProtectedRoute allowedRoles={["trainer"]}><TrainerAvailabilityPage /></ProtectedRoute>} />
             <Route path="/dashboard/users" element={<ProtectedRoute allowedRoles={["admin"]}><UsersPage /></ProtectedRoute>} />
+            <Route path="/dashboard/admin-sessions" element={<ProtectedRoute allowedRoles={["admin"]}><AdminSessionsPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
