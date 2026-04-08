@@ -176,7 +176,7 @@ const UsersPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((u, i) => (
+                {filteredUsers.map((u, i) => (
                   <TableRow key={u.id}>
                     <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="font-semibold">{u.full_name || "Unnamed"}</TableCell>
