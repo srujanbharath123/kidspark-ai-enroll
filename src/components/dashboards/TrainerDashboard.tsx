@@ -107,6 +107,38 @@ const TrainerDashboard = () => {
     fetchData();
   }, [user]);
 
+  const buildInvitationMessage = (s: AssignedStudent) => {
+    return `📚 *Class Invitation*\n\n👧 Student: ${s.child_name}\n📖 Course: ${s.course_title}\n📅 Date: ${s.date}\n🕐 Time: ${s.start_time.slice(0, 5)} – ${s.end_time.slice(0, 5)}\n👨‍🏫 Trainer: ${profile?.full_name || "Trainer"}\n${s.meet_link ? `\n🔗 Meeting Link: ${s.meet_link}` : ""}\n\nPlease join on time. Thank you!`;
+  };
+
+  const handleSendWhatsApp = (s: AssignedStudent) => {
+    const phone = s.parent_phone?.replace(/[^0-9]/g, "") || "";
+    if (!phone) {
+      toast({ title: "No phone number", description: "Parent has no phone number on file.", variant: "destructive" });
+      return;
+    }
+    const message = encodeURIComponent(buildInvitationMessage(s));
+    window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+  };
+
+  const handleCopyEmail = (s: AssignedStudent) => {
+    const message = buildInvitationMessage(s).replace(/\*/g, "");
+    navigator.clipboard.writeText(message);
+    toast({ title: "Copied! 📋", description: "Invitation details copied to clipboard." });
+  };
+
+  const handleSaveMeetLink = async (sessionId: string) => {
+    const { error } = await supabase.from("sessions").update({ meet_link: meetLinkValue }).eq("id", sessionId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Meeting link saved! ✅" });
+      setEditingMeetLink(null);
+      setMeetLinkValue("");
+      setAssignedStudents((prev) => prev.map((s) => s.id === sessionId ? { ...s, meet_link: meetLinkValue } : s));
+    }
+  };
+
   const cards = [
     { label: "Time Slots", value: stats.slots, icon: Calendar, color: "text-primary bg-primary/10", link: "/dashboard/availability" },
     { label: "Pending Sessions", value: stats.pendingSessions, icon: Users, color: "text-accent bg-accent/10", link: "/dashboard/sessions" },
