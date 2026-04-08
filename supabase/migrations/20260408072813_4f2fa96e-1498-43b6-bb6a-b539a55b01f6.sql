@@ -1,0 +1,3 @@
+ALTER TABLE public.children
+ADD COLUMN IF NOT EXISTS class text DEFAULT '',
+ADD COLUMN IF NOT EXISTS school text DEFAULT '';
