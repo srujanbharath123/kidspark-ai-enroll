@@ -75,7 +75,7 @@ const HeroSection = () => {
             ) : (
               <>
                 <Button variant="hero" size="xl" asChild>
-                  <Link to="/signup">
+                  <Link to="/enroll">
                     Enroll Now
                     <ArrowRight className="w-5 h-5" />
                   </Link>

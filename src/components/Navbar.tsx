@@ -61,7 +61,7 @@ const Navbar = () => {
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild><Link to="/login">Log In</Link></Button>
-              <Button variant="hero" size="sm" asChild><Link to="/signup">Enroll Now</Link></Button>
+              <Button variant="hero" size="sm" asChild><Link to="/enroll">Enroll Now</Link></Button>
             </>
           )}
         </div>
@@ -109,7 +109,7 @@ const Navbar = () => {
                       <Link to="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
                     </Button>
                     <Button variant="hero" size="sm" className="flex-1" asChild>
-                      <Link to="/signup" onClick={() => setMobileOpen(false)}>Enroll Now</Link>
+                      <Link to="/enroll" onClick={() => setMobileOpen(false)}>Enroll Now</Link>
                     </Button>
                   </>
                 )}
