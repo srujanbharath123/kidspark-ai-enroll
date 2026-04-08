@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   Check, CreditCard, Loader2, ArrowLeft, ArrowRight,
-  Sparkles, GraduationCap, User, Calendar, Clock, Mail, Eye, EyeOff, ShieldCheck,
+  Sparkles, GraduationCap, User, Calendar, Clock, Mail, ShieldCheck,
 } from "lucide-react";
 
 interface Course {
@@ -35,7 +35,7 @@ interface AvailableSlot {
 const STEPS = ["Course", "Details", "Slot", "Account", "Pay"];
 
 const EnrollPage = () => {
-  const { user, profile, signIn, signUp } = useAuth();
+  const { user, profile, sendOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -59,11 +59,11 @@ const EnrollPage = () => {
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
-  // Auth (step 3)
-  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  // Auth (step 3) - Phone OTP
+  const [authPhone, setAuthPhone] = useState("");
+  const [authOtp, setAuthOtp] = useState("");
+  const [authOtpSent, setAuthOtpSent] = useState(false);
+  const [authIsDummy, setAuthIsDummy] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
   // Payment
@@ -149,32 +149,44 @@ const EnrollPage = () => {
     }
   };
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendAuthOtp = async () => {
+    const formattedPhone = authPhone.startsWith("+") ? authPhone : `+91${authPhone}`;
+    if (!/^\+\d{10,15}$/.test(formattedPhone)) {
+      toast({ title: "Invalid phone", description: "Enter a valid phone number with country code", variant: "destructive" });
+      return;
+    }
     setAuthLoading(true);
     try {
-      if (authMode === "signup") {
-        if (authPassword.length < 6) {
-          toast({ title: "Password too short", description: "Must be at least 6 characters", variant: "destructive" });
-          setAuthLoading(false);
-          return;
-        }
-        await signUp(authEmail, authPassword, parentName, "parent");
-        // Auto sign-in after signup
-        await signIn(authEmail, authPassword);
-        toast({ title: "Account created! 🎉" });
-      } else {
-        await signIn(authEmail, authPassword);
-        toast({ title: "Welcome back! 🎉" });
-      }
+      const result = await sendOtp(formattedPhone);
+      setAuthIsDummy(!!result.dummy);
+      setAuthOtpSent(true);
+      toast({ title: "OTP Sent! 📱", description: result.dummy ? "Use dummy code: 123456" : "Check your phone" });
+    } catch (error: any) {
+      toast({ title: "Failed to send OTP", description: error.message, variant: "destructive" });
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleVerifyAuthOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authOtp.length !== 6) {
+      toast({ title: "Invalid OTP", description: "Enter the 6-digit code", variant: "destructive" });
+      return;
+    }
+    const formattedPhone = authPhone.startsWith("+") ? authPhone : `+91${authPhone}`;
+    setAuthLoading(true);
+    try {
+      await verifyOtp(formattedPhone, authOtp, parentName, "parent");
+      toast({ title: "Verified! 🎉" });
       // Update phone on profile
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user && parentPhone) {
         await supabase.from("profiles").update({ phone: parentPhone.trim() }).eq("user_id", session.user.id);
       }
-      setStep(4); // proceed to payment
+      setStep(4);
     } catch (error: any) {
-      toast({ title: authMode === "signup" ? "Sign up failed" : "Login failed", description: error.message, variant: "destructive" });
+      toast({ title: "Verification failed", description: error.message, variant: "destructive" });
     } finally {
       setAuthLoading(false);
     }
@@ -471,14 +483,14 @@ const EnrollPage = () => {
           </div>
         )}
 
-        {/* Step 3: Sign Up / Login */}
+        {/* Step 3: Phone OTP Auth */}
         {step === 3 && (
           <div className="max-w-md mx-auto">
             <h2 className="text-2xl font-bold font-display mb-2 text-center">
-              {authMode === "signup" ? "Create Your Account" : "Welcome Back"}
+              {authOtpSent ? "Enter Verification Code" : "Verify Your Phone"}
             </h2>
             <p className="text-sm text-muted-foreground text-center mb-8">
-              {authMode === "signup" ? "Sign up to complete your enrollment" : "Login to continue with payment"}
+              {authOtpSent ? "Enter the OTP sent to your phone" : "We'll send a verification code to your mobile"}
             </p>
 
             <div className="bg-card rounded-2xl border border-border/50 p-8 shadow-card">
@@ -486,45 +498,50 @@ const EnrollPage = () => {
                 <ShieldCheck className="w-8 h-8 text-primary" />
               </div>
 
-              {/* Toggle */}
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                <button onClick={() => setAuthMode("signup")}
-                  className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
-                    authMode === "signup" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/30"
-                  }`}>
-                  Sign Up
-                </button>
-                <button onClick={() => setAuthMode("login")}
-                  className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
-                    authMode === "login" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/30"
-                  }`}>
-                  Login
-                </button>
-              </div>
-
-              <form onSubmit={handleAuth} className="space-y-4">
-                <div>
-                  <Label htmlFor="authEmail">Email</Label>
-                  <Input id="authEmail" type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)}
-                    placeholder="parent@example.com" required className="mt-1.5 rounded-xl h-11" />
-                </div>
-                <div>
-                  <Label htmlFor="authPassword">Password</Label>
-                  <div className="relative mt-1.5">
-                    <Input id="authPassword" type={showPassword ? "text" : "password"} value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)} placeholder={authMode === "signup" ? "Min 6 characters" : "••••••••"}
-                      required className="rounded-xl h-11 pr-10" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+              {!authOtpSent ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="authPhone">Mobile Number</Label>
+                    <Input
+                      id="authPhone"
+                      type="tel"
+                      value={authPhone}
+                      onChange={(e) => setAuthPhone(e.target.value.replace(/[^\d+]/g, ""))}
+                      placeholder="+919876543210"
+                      required
+                      className="mt-1.5 rounded-xl h-11"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Dummy: +919999999999</p>
                   </div>
+                  <Button variant="hero" size="lg" className="w-full" onClick={handleSendAuthOtp} disabled={authLoading}>
+                    {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : "Send OTP"}
+                  </Button>
                 </div>
-                <Button variant="hero" size="lg" className="w-full" type="submit" disabled={authLoading}>
-                  {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Please wait...</> :
-                    authMode === "signup" ? "Create Account & Continue" : "Login & Continue"}
-                </Button>
-              </form>
+              ) : (
+                <form onSubmit={handleVerifyAuthOtp} className="space-y-4">
+                  <div>
+                    <Label>Verification Code</Label>
+                    <Input
+                      type="text"
+                      maxLength={6}
+                      value={authOtp}
+                      onChange={(e) => setAuthOtp(e.target.value.replace(/\D/g, ""))}
+                      placeholder="Enter 6-digit OTP"
+                      className="mt-1.5 rounded-xl h-11 text-center text-lg tracking-widest"
+                    />
+                    {authIsDummy && (
+                      <p className="text-xs text-center text-primary mt-2 font-medium">Dummy OTP: 123456</p>
+                    )}
+                  </div>
+                  <Button variant="hero" size="lg" className="w-full" type="submit" disabled={authLoading}>
+                    {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</> : "Verify & Continue"}
+                  </Button>
+                  <button type="button" onClick={() => { setAuthOtpSent(false); setAuthOtp(""); }}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Change phone number
+                  </button>
+                </form>
+              )}
             </div>
 
             <div className="flex justify-start mt-8">

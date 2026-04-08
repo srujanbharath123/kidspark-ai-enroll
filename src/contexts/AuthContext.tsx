@@ -18,10 +18,9 @@ interface AuthContextType {
   profile: Profile | null;
   role: UserRole | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  sendOtp: (phone: string) => Promise<{ dummy?: boolean }>;
+  verifyOtp: (phone: string, code: string, fullName?: string, role?: UserRole) => Promise<void>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,7 +40,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (profileRes.data) setProfile(profileRes.data as Profile);
 
-    // Check roles in order of priority
     if (roleRes.data) {
       setRole("admin");
     } else {
@@ -80,21 +78,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, role: UserRole) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, role },
-        emailRedirectTo: window.location.origin,
-      },
+  const sendOtp = async (phone: string) => {
+    const { data, error } = await supabase.functions.invoke("send-otp", {
+      body: { phone },
     });
-    if (error) throw error;
+    if (error) throw new Error(error.message || "Failed to send OTP");
+    if (data?.error) throw new Error(data.error);
+    return { dummy: data?.dummy };
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+  const verifyOtp = async (phone: string, code: string, fullName?: string, role?: UserRole) => {
+    const { data, error } = await supabase.functions.invoke("verify-otp", {
+      body: { phone, code, full_name: fullName, role },
+    });
+    if (error) throw new Error(error.message || "OTP verification failed");
+    if (data?.error) throw new Error(data.error);
+
+    // Use the magic link token to sign in
+    if (data?.token_hash) {
+      const { error: verifyErr } = await supabase.auth.verifyOtp({
+        token_hash: data.token_hash,
+        type: "magiclink",
+      });
+      if (verifyErr) throw new Error("Sign-in failed: " + verifyErr.message);
+    } else {
+      throw new Error("No authentication token received");
+    }
   };
 
   const signOut = async () => {
@@ -102,15 +111,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw error;
   };
 
-  const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) throw error;
-  };
-
   return (
-    <AuthContext.Provider value={{ session, user, profile, role, loading, signUp, signIn, signOut, resetPassword }}>
+    <AuthContext.Provider value={{ session, user, profile, role, loading, sendOtp, verifyOtp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
