@@ -76,9 +76,10 @@ const TrainerDashboard = () => {
           parentIds.length > 0 ? supabase.from("profiles").select("user_id, full_name, phone").in("user_id", parentIds) : { data: [] },
         ]);
 
-        const childMap = new Map((childRes.data || []).map((c) => [c.id, c]));
-        const courseMap = new Map((courseRes.data || []).map((c) => [c.id, c.title]));
-        const parentMap = new Map((parentRes.data || []).map((p) => [p.user_id, p.full_name]));
+        const childMap = new Map((childRes.data || []).map((c: any) => [c.id, c]));
+        const courseMap = new Map((courseRes.data || []).map((c: any) => [c.id, c.title]));
+        const parentMap = new Map((parentRes.data || []).map((p: any) => [p.user_id, p.full_name]));
+        const parentPhoneMap = new Map((parentRes.data || []).map((p: any) => [p.user_id, p.phone || ""]));
 
         const assigned: AssignedStudent[] = sessData
           .filter((s) => s.child_id && (s.status === "approved" || s.status === "pending"))
