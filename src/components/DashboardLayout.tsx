@@ -2,8 +2,18 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
-  Sparkles, LayoutDashboard, BookOpen, Users, Calendar,
-  CreditCard, Settings, LogOut, Menu, X, UserPlus, BarChart3
+  Sparkles,
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  Calendar,
+  CreditCard,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  UserPlus,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -49,7 +59,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-primary-foreground" />
           </div>
-          <span className="font-display text-lg font-bold">TechWindows</span>
+          <span className="font-display text-lg font-bold">TechWindows..</span>
         </Link>
       </div>
 
@@ -62,9 +72,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               to={link.href}
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
               <link.icon className="w-4 h-4" />
@@ -100,9 +108,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       </div>
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 z-40 h-full w-64 bg-card border-r border-border/50 transition-transform duration-300 ${
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      } lg:translate-x-0`}>
+      <aside
+        className={`fixed top-0 left-0 z-40 h-full w-64 bg-card border-r border-border/50 transition-transform duration-300 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0`}
+      >
         <NavContent />
       </aside>
 
