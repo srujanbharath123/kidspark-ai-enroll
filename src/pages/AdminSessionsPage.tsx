@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Plus, Trash2, Calendar, Clock, Users, UserPlus, Loader2, Check, X,
+  Plus, Trash2, Calendar, Clock, Users, UserPlus, Loader2, Check, X, Link2, Send, MessageCircle, Mail,
 } from "lucide-react";
 
 interface Trainer {
@@ -47,9 +47,12 @@ interface Session {
   parent_id: string;
   child_id: string | null;
   course_id: string | null;
+  meet_link: string | null;
   trainer_name?: string;
   child_name?: string;
   course_title?: string;
+  parent_phone?: string;
+  parent_email?: string;
 }
 
 const AdminSessionsPage = () => {
@@ -71,6 +74,8 @@ const AdminSessionsPage = () => {
   const [assignTrainer, setAssignTrainer] = useState<Record<string, string>>({});
   const [assignSlot, setAssignSlot] = useState<Record<string, string>>({});
   const [assigning, setAssigning] = useState<string | null>(null);
+  const [editingMeetLink, setEditingMeetLink] = useState<string | null>(null);
+  const [meetLinkValue, setMeetLinkValue] = useState("");
 
   const [loading, setLoading] = useState(true);
 
@@ -115,22 +120,27 @@ const AdminSessionsPage = () => {
     // Fetch all sessions to know which enrollments already have assignments
     const { data: sessData } = await supabase
       .from("sessions")
-      .select("id, date, start_time, end_time, status, trainer_id, parent_id, child_id, course_id")
+      .select("id, date, start_time, end_time, status, trainer_id, parent_id, child_id, course_id, meet_link")
       .order("date", { ascending: false });
 
     const assignedChildCourses = new Set(
       (sessData || []).map((s) => `${s.child_id}_${s.course_id}`)
     );
 
-    // Get parent names
-    const parentIds = [...new Set((enrollData || []).map((e) => e.parent_id))];
+    // Get parent names and contact info for both enrollments and sessions
+    const allParentIds = [...new Set([
+      ...(enrollData || []).map((e) => e.parent_id),
+      ...(sessData || []).map((s) => s.parent_id),
+    ])];
     let parentMap = new Map<string, string>();
-    if (parentIds.length > 0) {
+    let parentPhoneMap = new Map<string, string>();
+    if (allParentIds.length > 0) {
       const { data: parentProfiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", parentIds);
+        .select("user_id, full_name, phone")
+        .in("user_id", allParentIds);
       parentMap = new Map((parentProfiles || []).map((p) => [p.user_id, p.full_name]));
+      parentPhoneMap = new Map((parentProfiles || []).map((p) => [p.user_id, p.phone || ""]));
     }
 
     const unassigned = (enrollData || [])
@@ -163,6 +173,7 @@ const AdminSessionsPage = () => {
           trainer_name: trainerMap.get(s.trainer_id) || "Unknown",
           child_name: s.child_id ? childMap.get(s.child_id) || "Unknown" : "N/A",
           course_title: s.course_id ? courseMap.get(s.course_id) || "Unknown" : "N/A",
+          parent_phone: parentPhoneMap.get(s.parent_id) || "",
         }))
       );
     }
@@ -260,6 +271,38 @@ const AdminSessionsPage = () => {
     } finally {
       setAssigning(null);
     }
+  };
+
+  const handleSaveMeetLink = async (sessionId: string) => {
+    const { error } = await supabase.from("sessions").update({ meet_link: meetLinkValue }).eq("id", sessionId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Meeting link saved! ✅" });
+      setEditingMeetLink(null);
+      setMeetLinkValue("");
+      fetchAll();
+    }
+  };
+
+  const buildInvitationMessage = (s: Session) => {
+    return `📚 *Class Invitation*\n\n👧 Student: ${s.child_name}\n📖 Course: ${s.course_title}\n📅 Date: ${s.date}\n🕐 Time: ${s.start_time.slice(0, 5)} – ${s.end_time.slice(0, 5)}\n👨‍🏫 Trainer: ${s.trainer_name}\n${s.meet_link ? `\n🔗 Meeting Link: ${s.meet_link}` : ""}\n\nPlease join on time. Thank you!`;
+  };
+
+  const handleSendWhatsApp = (s: Session) => {
+    const phone = s.parent_phone?.replace(/[^0-9]/g, "") || "";
+    if (!phone) {
+      toast({ title: "No phone number", description: "Parent has no phone number on file.", variant: "destructive" });
+      return;
+    }
+    const message = encodeURIComponent(buildInvitationMessage(s));
+    window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+  };
+
+  const handleCopyEmail = (s: Session) => {
+    const message = buildInvitationMessage(s).replace(/\*/g, "");
+    navigator.clipboard.writeText(message);
+    toast({ title: "Copied! 📋", description: "Invitation details copied to clipboard. Paste in your email." });
   };
 
   const statusColors: Record<string, string> = {
@@ -452,16 +495,61 @@ const AdminSessionsPage = () => {
                   <p className="text-sm text-muted-foreground">No sessions yet.</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {sessions.map((s) => (
-                    <div key={s.id} className="bg-card rounded-xl border border-border/50 p-4 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold">{s.child_name} – {s.course_title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {s.date} · {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)} · Trainer: {s.trainer_name}
-                        </p>
+                    <div key={s.id} className="bg-card rounded-2xl border border-border/50 p-5 shadow-card">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">{s.child_name} – {s.course_title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {s.date} · {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)} · Trainer: {s.trainer_name}
+                          </p>
+                          {s.meet_link && (
+                            <a href={s.meet_link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                              <Link2 className="w-3 h-3" /> {s.meet_link}
+                            </a>
+                          )}
+                        </div>
+                        <Badge variant="outline" className={statusColors[s.status] || ""}>{s.status}</Badge>
                       </div>
-                      <Badge variant="outline" className={statusColors[s.status] || ""}>{s.status}</Badge>
+
+                      {/* Meet link edit */}
+                      {editingMeetLink === s.id ? (
+                        <div className="mt-3 flex items-center gap-2">
+                          <Input
+                            value={meetLinkValue}
+                            onChange={(e) => setMeetLinkValue(e.target.value)}
+                            placeholder="https://meet.google.com/..."
+                            className="rounded-xl text-sm flex-1"
+                          />
+                          <Button variant="hero" size="sm" onClick={() => handleSaveMeetLink(s.id)}>
+                            <Check className="w-4 h-4" /> Save
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => setEditingMeetLink(null)}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setEditingMeetLink(s.id); setMeetLinkValue(s.meet_link || ""); }}
+                          >
+                            <Link2 className="w-4 h-4" /> {s.meet_link ? "Edit Link" : "Add Meet Link"}
+                          </Button>
+                          {s.meet_link && (
+                            <>
+                              <Button variant="outline" size="sm" onClick={() => handleSendWhatsApp(s)} className="text-success">
+                                <MessageCircle className="w-4 h-4" /> WhatsApp
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleCopyEmail(s)} className="text-primary">
+                                <Mail className="w-4 h-4" /> Copy for Email
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

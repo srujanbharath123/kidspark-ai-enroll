@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Users, CheckCircle, Clock, ArrowRight, GraduationCap } from "lucide-react";
+import { Calendar, Users, CheckCircle, Clock, ArrowRight, GraduationCap, Link2, MessageCircle, Mail, Check, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 interface PendingSession {
   id: string;
@@ -20,19 +22,24 @@ interface AssignedStudent {
   start_time: string;
   end_time: string;
   status: string;
+  meet_link: string | null;
   child_name: string;
   child_age: number;
   child_class: string | null;
   child_school: string | null;
   course_title: string;
   parent_name: string;
+  parent_phone: string;
 }
 
 const TrainerDashboard = () => {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
   const [stats, setStats] = useState({ slots: 0, pendingSessions: 0, completedSessions: 0 });
   const [pendingSessions, setPendingSessions] = useState<PendingSession[]>([]);
   const [assignedStudents, setAssignedStudents] = useState<AssignedStudent[]>([]);
+  const [editingMeetLink, setEditingMeetLink] = useState<string | null>(null);
+  const [meetLinkValue, setMeetLinkValue] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -50,7 +57,7 @@ const TrainerDashboard = () => {
 
       const { data: sessData } = await supabase
         .from("sessions")
-        .select("id, date, start_time, end_time, status, child_id, course_id, parent_id")
+        .select("id, date, start_time, end_time, status, child_id, course_id, parent_id, meet_link")
         .eq("trainer_id", user.id)
         .order("date", { ascending: false });
 
@@ -66,12 +73,13 @@ const TrainerDashboard = () => {
         const [childRes, courseRes, parentRes] = await Promise.all([
           childIds.length > 0 ? supabase.from("children").select("id, name, age, class, school").in("id", childIds) : { data: [] },
           courseIds.length > 0 ? supabase.from("courses").select("id, title").in("id", courseIds) : { data: [] },
-          parentIds.length > 0 ? supabase.from("profiles").select("user_id, full_name").in("user_id", parentIds) : { data: [] },
+          parentIds.length > 0 ? supabase.from("profiles").select("user_id, full_name, phone").in("user_id", parentIds) : { data: [] },
         ]);
 
-        const childMap = new Map((childRes.data || []).map((c) => [c.id, c]));
-        const courseMap = new Map((courseRes.data || []).map((c) => [c.id, c.title]));
-        const parentMap = new Map((parentRes.data || []).map((p) => [p.user_id, p.full_name]));
+        const childMap = new Map((childRes.data || []).map((c: any) => [c.id, c]));
+        const courseMap = new Map((courseRes.data || []).map((c: any) => [c.id, c.title]));
+        const parentMap = new Map((parentRes.data || []).map((p: any) => [p.user_id, p.full_name]));
+        const parentPhoneMap = new Map((parentRes.data || []).map((p: any) => [p.user_id, p.phone || ""]));
 
         const assigned: AssignedStudent[] = sessData
           .filter((s) => s.child_id && (s.status === "approved" || s.status === "pending"))
@@ -83,12 +91,14 @@ const TrainerDashboard = () => {
               start_time: s.start_time,
               end_time: s.end_time,
               status: s.status,
+              meet_link: s.meet_link,
               child_name: child?.name || "Unknown",
               child_age: child?.age || 0,
               child_class: child?.class || null,
               child_school: child?.school || null,
               course_title: s.course_id ? courseMap.get(s.course_id) || "N/A" : "N/A",
               parent_name: parentMap.get(s.parent_id) || "Unknown",
+              parent_phone: parentPhoneMap.get(s.parent_id) || "",
             };
           });
         setAssignedStudents(assigned);
@@ -96,6 +106,38 @@ const TrainerDashboard = () => {
     };
     fetchData();
   }, [user]);
+
+  const buildInvitationMessage = (s: AssignedStudent) => {
+    return `📚 *Class Invitation*\n\n👧 Student: ${s.child_name}\n📖 Course: ${s.course_title}\n📅 Date: ${s.date}\n🕐 Time: ${s.start_time.slice(0, 5)} – ${s.end_time.slice(0, 5)}\n👨‍🏫 Trainer: ${profile?.full_name || "Trainer"}\n${s.meet_link ? `\n🔗 Meeting Link: ${s.meet_link}` : ""}\n\nPlease join on time. Thank you!`;
+  };
+
+  const handleSendWhatsApp = (s: AssignedStudent) => {
+    const phone = s.parent_phone?.replace(/[^0-9]/g, "") || "";
+    if (!phone) {
+      toast({ title: "No phone number", description: "Parent has no phone number on file.", variant: "destructive" });
+      return;
+    }
+    const message = encodeURIComponent(buildInvitationMessage(s));
+    window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+  };
+
+  const handleCopyEmail = (s: AssignedStudent) => {
+    const message = buildInvitationMessage(s).replace(/\*/g, "");
+    navigator.clipboard.writeText(message);
+    toast({ title: "Copied! 📋", description: "Invitation details copied to clipboard." });
+  };
+
+  const handleSaveMeetLink = async (sessionId: string) => {
+    const { error } = await supabase.from("sessions").update({ meet_link: meetLinkValue }).eq("id", sessionId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Meeting link saved! ✅" });
+      setEditingMeetLink(null);
+      setMeetLinkValue("");
+      setAssignedStudents((prev) => prev.map((s) => s.id === sessionId ? { ...s, meet_link: meetLinkValue } : s));
+    }
+  };
 
   const cards = [
     { label: "Time Slots", value: stats.slots, icon: Calendar, color: "text-primary bg-primary/10", link: "/dashboard/availability" },
@@ -179,9 +221,51 @@ const TrainerDashboard = () => {
                       <Clock className="w-3 h-3" />
                       {new Date(s.date + "T00:00").toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" })} · {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
                     </p>
+                    {s.meet_link && (
+                      <a href={s.meet_link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                        <Link2 className="w-3 h-3" /> {s.meet_link}
+                      </a>
+                    )}
                   </div>
                   <Badge variant="outline" className={statusColors[s.status] || ""}>{s.status}</Badge>
                 </div>
+
+                {editingMeetLink === s.id ? (
+                  <div className="mt-3 flex items-center gap-2">
+                    <Input
+                      value={meetLinkValue}
+                      onChange={(e) => setMeetLinkValue(e.target.value)}
+                      placeholder="https://meet.google.com/..."
+                      className="rounded-xl text-sm flex-1"
+                    />
+                    <Button variant="hero" size="sm" onClick={() => handleSaveMeetLink(s.id)}>
+                      <Check className="w-4 h-4" /> Save
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setEditingMeetLink(null)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setEditingMeetLink(s.id); setMeetLinkValue(s.meet_link || ""); }}
+                    >
+                      <Link2 className="w-4 h-4" /> {s.meet_link ? "Edit Link" : "Add Meet Link"}
+                    </Button>
+                    {s.meet_link && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => handleSendWhatsApp(s)} className="text-success">
+                          <MessageCircle className="w-4 h-4" /> WhatsApp
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleCopyEmail(s)} className="text-primary">
+                          <Mail className="w-4 h-4" /> Copy for Email
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
