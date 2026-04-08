@@ -35,7 +35,7 @@ interface AvailableSlot {
 const STEPS = ["Course", "Details", "Slot", "Account", "Pay"];
 
 const EnrollPage = () => {
-  const { user, profile, signIn, signUp } = useAuth();
+  const { user, profile, sendOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -59,11 +59,11 @@ const EnrollPage = () => {
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
-  // Auth (step 3)
-  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  // Auth (step 3) - Phone OTP
+  const [authPhone, setAuthPhone] = useState("");
+  const [authOtp, setAuthOtp] = useState("");
+  const [authOtpSent, setAuthOtpSent] = useState(false);
+  const [authIsDummy, setAuthIsDummy] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
   // Payment
@@ -149,32 +149,44 @@ const EnrollPage = () => {
     }
   };
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendAuthOtp = async () => {
+    const formattedPhone = authPhone.startsWith("+") ? authPhone : `+91${authPhone}`;
+    if (!/^\+\d{10,15}$/.test(formattedPhone)) {
+      toast({ title: "Invalid phone", description: "Enter a valid phone number with country code", variant: "destructive" });
+      return;
+    }
     setAuthLoading(true);
     try {
-      if (authMode === "signup") {
-        if (authPassword.length < 6) {
-          toast({ title: "Password too short", description: "Must be at least 6 characters", variant: "destructive" });
-          setAuthLoading(false);
-          return;
-        }
-        await signUp(authEmail, authPassword, parentName, "parent");
-        // Auto sign-in after signup
-        await signIn(authEmail, authPassword);
-        toast({ title: "Account created! 🎉" });
-      } else {
-        await signIn(authEmail, authPassword);
-        toast({ title: "Welcome back! 🎉" });
-      }
+      const result = await sendOtp(formattedPhone);
+      setAuthIsDummy(!!result.dummy);
+      setAuthOtpSent(true);
+      toast({ title: "OTP Sent! 📱", description: result.dummy ? "Use dummy code: 123456" : "Check your phone" });
+    } catch (error: any) {
+      toast({ title: "Failed to send OTP", description: error.message, variant: "destructive" });
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleVerifyAuthOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authOtp.length !== 6) {
+      toast({ title: "Invalid OTP", description: "Enter the 6-digit code", variant: "destructive" });
+      return;
+    }
+    const formattedPhone = authPhone.startsWith("+") ? authPhone : `+91${authPhone}`;
+    setAuthLoading(true);
+    try {
+      await verifyOtp(formattedPhone, authOtp, parentName, "parent");
+      toast({ title: "Verified! 🎉" });
       // Update phone on profile
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user && parentPhone) {
         await supabase.from("profiles").update({ phone: parentPhone.trim() }).eq("user_id", session.user.id);
       }
-      setStep(4); // proceed to payment
+      setStep(4);
     } catch (error: any) {
-      toast({ title: authMode === "signup" ? "Sign up failed" : "Login failed", description: error.message, variant: "destructive" });
+      toast({ title: "Verification failed", description: error.message, variant: "destructive" });
     } finally {
       setAuthLoading(false);
     }
