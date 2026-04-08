@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Authenticated can view availability" ON public.trainer_availability;
+CREATE POLICY "Anyone can view availability" ON public.trainer_availability FOR SELECT TO anon, authenticated USING (true);
