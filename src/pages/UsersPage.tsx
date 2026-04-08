@@ -159,7 +159,7 @@ const UsersPage = () => {
           </div>
         )}
 
-        {users.length === 0 ? (
+        {filteredUsers.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border/50 p-8 text-center shadow-card">
             <p className="text-muted-foreground">No users yet.</p>
           </div>
