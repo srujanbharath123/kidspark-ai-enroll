@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, X, Calendar } from "lucide-react";
+import { Plus, Check, X, Calendar, CreditCard, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Slot {
@@ -24,13 +24,13 @@ interface Session {
   end_time: string;
   status: string;
   meet_link: string | null;
-  profiles?: { full_name: string } | null;
-  parent_profile?: { full_name: string } | null;
-  children?: { name: string } | null;
+  notes: string | null;
 }
 
+const SESSION_PRICE = 499; // ₹499 per session
+
 const SessionsPage = () => {
-  const { user, role } = useAuth();
+  const { user, role, profile } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [showSlotForm, setShowSlotForm] = useState(false);
@@ -40,15 +40,15 @@ const SessionsPage = () => {
   const [availableSlots, setAvailableSlots] = useState<(Slot & { trainer_name: string; trainer_id: string })[]>([]);
   const [selectedChild, setSelectedChild] = useState("");
   const [children, setChildren] = useState<{ id: string; name: string }[]>([]);
+  const [payingSlotId, setPayingSlotId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchData = async () => {
     if (!user) return;
 
-    // Fetch sessions
     let sessionsQuery = supabase
       .from("sessions")
-      .select("id, date, start_time, end_time, status, meet_link")
+      .select("id, date, start_time, end_time, status, meet_link, notes")
       .order("date", { ascending: false });
 
     if (role === "parent") sessionsQuery = sessionsQuery.eq("parent_id", user.id);
@@ -57,7 +57,6 @@ const SessionsPage = () => {
     const { data: sessionsData } = await sessionsQuery;
     if (sessionsData) setSessions(sessionsData);
 
-    // Trainer: fetch own slots
     if (role === "trainer") {
       const { data: slotsData } = await supabase
         .from("trainer_availability")
@@ -67,7 +66,6 @@ const SessionsPage = () => {
       if (slotsData) setSlots(slotsData);
     }
 
-    // Parent: fetch available slots for booking
     if (role === "parent") {
       const { data: availData } = await supabase
         .from("trainer_availability")
@@ -77,7 +75,6 @@ const SessionsPage = () => {
         .order("date");
 
       if (availData) {
-        // Get trainer names
         const trainerIds = [...new Set(availData.map((s) => s.trainer_id))];
         const { data: profiles } = await supabase
           .from("profiles")
@@ -118,27 +115,85 @@ const SessionsPage = () => {
     }
   };
 
-  const bookSession = async (slot: (typeof availableSlots)[0]) => {
+  const initiatePayment = async (slot: (typeof availableSlots)[0]) => {
     if (!user || !selectedChild) {
       toast({ title: "Select a child first", variant: "destructive" });
       return;
     }
-    const { error } = await supabase.from("sessions").insert({
-      parent_id: user.id,
-      trainer_id: slot.trainer_id,
-      child_id: selectedChild,
-      availability_id: slot.id,
-      date: slot.date,
-      start_time: slot.start_time,
-      end_time: slot.end_time,
-    });
-    if (error) {
-      toast({ title: "Booking failed", description: error.message, variant: "destructive" });
-    } else {
-      // Mark slot as booked
-      await supabase.from("trainer_availability").update({ is_booked: true }).eq("id", slot.id);
-      toast({ title: "Session booked! 🎉" });
-      fetchData();
+
+    if (!window.Razorpay) {
+      toast({ title: "Payment gateway loading...", description: "Please try again in a moment.", variant: "destructive" });
+      return;
+    }
+
+    setPayingSlotId(slot.id);
+
+    try {
+      // Step 1: Create Razorpay order via edge function
+      const { data, error } = await supabase.functions.invoke("create-razorpay-order", {
+        body: {
+          amount: SESSION_PRICE,
+          session_slot_id: slot.id,
+          child_id: selectedChild,
+        },
+      });
+
+      if (error || !data?.order_id) {
+        throw new Error(error?.message || "Failed to create payment order");
+      }
+
+      // Step 2: Open Razorpay checkout
+      const options: RazorpayOptions = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: data.currency,
+        name: "TechWindows AI Bootcamp",
+        description: `Session on ${slot.date} (${slot.start_time} - ${slot.end_time})`,
+        order_id: data.order_id,
+        handler: async (response) => {
+          // Step 3: Verify payment and create session
+          try {
+            const { data: verifyData, error: verifyError } = await supabase.functions.invoke("verify-razorpay-payment", {
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                slot_id: slot.id,
+                trainer_id: slot.trainer_id,
+                child_id: selectedChild,
+                date: slot.date,
+                start_time: slot.start_time,
+                end_time: slot.end_time,
+              },
+            });
+
+            if (verifyError || !verifyData?.success) {
+              throw new Error("Payment verification failed");
+            }
+
+            toast({ title: "Session booked! 🎉", description: "Payment successful. Your session is confirmed." });
+            fetchData();
+          } catch {
+            toast({ title: "Payment verified but booking failed", description: "Please contact support.", variant: "destructive" });
+          } finally {
+            setPayingSlotId(null);
+          }
+        },
+        prefill: {
+          name: profile?.full_name || "",
+          email: user.email || "",
+        },
+        theme: { color: "#6366f1" },
+        modal: {
+          ondismiss: () => setPayingSlotId(null),
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      toast({ title: "Payment failed", description: err.message, variant: "destructive" });
+      setPayingSlotId(null);
     }
   };
 
@@ -216,7 +271,7 @@ const SessionsPage = () => {
           </div>
         )}
 
-        {/* Parent: Book sessions */}
+        {/* Parent: Book sessions with payment */}
         {role === "parent" && availableSlots.length > 0 && (
           <div className="mb-8">
             <h2 className="text-lg font-bold font-display mb-4">Available Slots</h2>
@@ -242,9 +297,21 @@ const SessionsPage = () => {
                     <p className="text-sm font-semibold">{slot.trainer_name}</p>
                     <p className="text-xs text-muted-foreground">{slot.date} · {slot.start_time} - {slot.end_time}</p>
                   </div>
-                  <Button variant="hero" size="sm" onClick={() => bookSession(slot)} disabled={!selectedChild}>
-                    Book
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-primary">₹{SESSION_PRICE}</span>
+                    <Button
+                      variant="hero"
+                      size="sm"
+                      onClick={() => initiatePayment(slot)}
+                      disabled={!selectedChild || payingSlotId === slot.id}
+                    >
+                      {payingSlotId === slot.id ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                      ) : (
+                        <><CreditCard className="w-4 h-4" /> Pay & Book</>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -266,6 +333,11 @@ const SessionsPage = () => {
                 <div key={s.id} className="bg-card rounded-2xl border border-border/50 p-4 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">{s.date} · {s.start_time} - {s.end_time}</p>
+                    {s.notes && s.notes.startsWith("Payment:") && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <CreditCard className="w-3 h-3" /> Paid
+                      </p>
+                    )}
                     {s.meet_link && <a href={s.meet_link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">Join Meeting</a>}
                   </div>
                   <div className="flex items-center gap-2">
