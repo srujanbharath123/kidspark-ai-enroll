@@ -34,9 +34,12 @@ interface AssignedStudent {
 
 const TrainerDashboard = () => {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
   const [stats, setStats] = useState({ slots: 0, pendingSessions: 0, completedSessions: 0 });
   const [pendingSessions, setPendingSessions] = useState<PendingSession[]>([]);
   const [assignedStudents, setAssignedStudents] = useState<AssignedStudent[]>([]);
+  const [editingMeetLink, setEditingMeetLink] = useState<string | null>(null);
+  const [meetLinkValue, setMeetLinkValue] = useState("");
 
   useEffect(() => {
     if (!user) return;
