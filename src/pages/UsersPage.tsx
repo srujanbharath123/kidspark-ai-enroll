@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Check, X, Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -9,24 +14,116 @@ interface UserProfile {
   full_name: string;
   phone: string | null;
   created_at: string;
+  role?: string;
 }
 
 const UsersPage = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [trainerName, setTrainerName] = useState("");
+  const [trainerEmail, setTrainerEmail] = useState("");
+  const [trainerPassword, setTrainerPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-      if (data) setUsers(data);
-    };
-    fetchUsers();
-  }, []);
+  const fetchUsers = async () => {
+    const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    if (!profiles) return;
+
+    // Fetch roles
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const roleMap = new Map((roles || []).map((r) => [r.user_id, r.role]));
+
+    setUsers(profiles.map((p) => ({ ...p, role: roleMap.get(p.user_id) || "parent" })));
+  };
+
+  useEffect(() => { fetchUsers(); }, []);
+
+  const handleCreateTrainer = async () => {
+    if (!trainerName.trim() || !trainerEmail.trim() || !trainerPassword) {
+      toast({ title: "Fill all fields", variant: "destructive" });
+      return;
+    }
+    if (trainerPassword.length < 6) {
+      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-trainer", {
+        body: { email: trainerEmail.trim(), password: trainerPassword, full_name: trainerName.trim() },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Failed to create trainer");
+
+      toast({ title: "Trainer created! ✅", description: `${trainerName} can now log in.` });
+      setShowForm(false);
+      setTrainerName("");
+      setTrainerEmail("");
+      setTrainerPassword("");
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const roleColors: Record<string, string> = {
+    admin: "bg-primary/10 text-primary border-primary/20",
+    trainer: "bg-accent/10 text-accent border-accent/20",
+    parent: "bg-success/10 text-success border-success/20",
+  };
 
   return (
     <DashboardLayout>
-      <div>
-        <h1 className="text-2xl font-bold font-display mb-2">Users</h1>
+      <div className="max-w-3xl">
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-2xl font-bold font-display">Users</h1>
+          <Button variant="hero" size="sm" onClick={() => setShowForm(true)}>
+            <UserPlus className="w-4 h-4" /> Add Trainer
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground mb-8">All registered users</p>
+
+        {showForm && (
+          <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-card mb-6">
+            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-primary" /> Create New Trainer
+            </h3>
+            <div className="grid sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label>Full Name *</Label>
+                <Input value={trainerName} onChange={(e) => setTrainerName(e.target.value)}
+                  placeholder="e.g. John Doe" className="mt-1.5 rounded-xl" />
+              </div>
+              <div>
+                <Label>Email *</Label>
+                <Input type="email" value={trainerEmail} onChange={(e) => setTrainerEmail(e.target.value)}
+                  placeholder="trainer@example.com" className="mt-1.5 rounded-xl" />
+              </div>
+            </div>
+            <div className="mb-4 max-w-sm">
+              <Label>Password *</Label>
+              <div className="relative mt-1.5">
+                <Input type={showPassword ? "text" : "password"} value={trainerPassword}
+                  onChange={(e) => setTrainerPassword(e.target.value)}
+                  placeholder="Min 6 characters" className="rounded-xl pr-10" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="hero" size="sm" onClick={handleCreateTrainer} disabled={creating}>
+                {creating ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><Check className="w-4 h-4" /> Create Trainer</>}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowForm(false)}><X className="w-4 h-4" /> Cancel</Button>
+            </div>
+          </div>
+        )}
 
         {users.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border/50 p-8 text-center shadow-card">
@@ -42,6 +139,9 @@ const UsersPage = () => {
                     {u.phone || "No phone"} · Joined {new Date(u.created_at).toLocaleDateString()}
                   </p>
                 </div>
+                <Badge variant="outline" className={roleColors[u.role || "parent"] || ""}>
+                  {u.role || "parent"}
+                </Badge>
               </div>
             ))}
           </div>
