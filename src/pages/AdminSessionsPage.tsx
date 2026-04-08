@@ -74,6 +74,8 @@ const AdminSessionsPage = () => {
   const [assignTrainer, setAssignTrainer] = useState<Record<string, string>>({});
   const [assignSlot, setAssignSlot] = useState<Record<string, string>>({});
   const [assigning, setAssigning] = useState<string | null>(null);
+  const [editingMeetLink, setEditingMeetLink] = useState<string | null>(null);
+  const [meetLinkValue, setMeetLinkValue] = useState("");
 
   const [loading, setLoading] = useState(true);
 
