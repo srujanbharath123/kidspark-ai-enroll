@@ -65,9 +65,14 @@ serve(async (req) => {
       .single();
 
     let userId: string;
+    let userEmail: string;
 
     if (existingProfile) {
       userId = existingProfile.user_id;
+      // Get the actual email from auth.users
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (!authUser?.user?.email) throw new Error("Failed to retrieve user email");
+      userEmail = authUser.user.email;
     } else {
       // Create new user with phone as email placeholder
       const email = `${phone.replace("+", "")}@phone.techwindows.local`;
@@ -86,6 +91,7 @@ serve(async (req) => {
 
       if (createErr) throw new Error("Failed to create user: " + createErr.message);
       userId = newUser.user.id;
+      userEmail = email;
 
       // Update profile with phone
       await supabaseAdmin
@@ -94,35 +100,21 @@ serve(async (req) => {
         .eq("user_id", userId);
     }
 
-    // Generate session token using admin
-    const { data: session, error: sessionErr } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
-      email: `${phone.replace("+", "")}@phone.techwindows.local`,
-    });
-
-    // Use a different approach - sign in with password
-    // Actually, let's generate a custom token approach
-    // We'll use signInWithPassword with known credentials - but we used random password
-    // Better: use admin to create a session directly
-
-    // Get the user and create a session
+    // Generate magic link using the user's actual email
     const { data: tokenData, error: tokenErr } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
-      email: `${phone.replace("+", "")}@phone.techwindows.local`,
+      email: userEmail,
     });
 
     if (tokenErr) throw new Error("Failed to generate session: " + tokenErr.message);
 
-    // Extract the token hash and return it for client-side verification
     const tokenHash = tokenData?.properties?.hashed_token;
-    const redirectUrl = tokenData?.properties?.action_link;
 
     return new Response(
       JSON.stringify({
         success: true,
         user_id: userId,
         token_hash: tokenHash,
-        redirect_url: redirectUrl,
         is_new_user: !existingProfile,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
