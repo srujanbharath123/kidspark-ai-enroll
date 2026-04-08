@@ -273,6 +273,38 @@ const AdminSessionsPage = () => {
     }
   };
 
+  const handleSaveMeetLink = async (sessionId: string) => {
+    const { error } = await supabase.from("sessions").update({ meet_link: meetLinkValue }).eq("id", sessionId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Meeting link saved! ✅" });
+      setEditingMeetLink(null);
+      setMeetLinkValue("");
+      fetchAll();
+    }
+  };
+
+  const buildInvitationMessage = (s: Session) => {
+    return `📚 *Class Invitation*\n\n👧 Student: ${s.child_name}\n📖 Course: ${s.course_title}\n📅 Date: ${s.date}\n🕐 Time: ${s.start_time.slice(0, 5)} – ${s.end_time.slice(0, 5)}\n👨‍🏫 Trainer: ${s.trainer_name}\n${s.meet_link ? `\n🔗 Meeting Link: ${s.meet_link}` : ""}\n\nPlease join on time. Thank you!`;
+  };
+
+  const handleSendWhatsApp = (s: Session) => {
+    const phone = s.parent_phone?.replace(/[^0-9]/g, "") || "";
+    if (!phone) {
+      toast({ title: "No phone number", description: "Parent has no phone number on file.", variant: "destructive" });
+      return;
+    }
+    const message = encodeURIComponent(buildInvitationMessage(s));
+    window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+  };
+
+  const handleCopyEmail = (s: Session) => {
+    const message = buildInvitationMessage(s).replace(/\*/g, "");
+    navigator.clipboard.writeText(message);
+    toast({ title: "Copied! 📋", description: "Invitation details copied to clipboard. Paste in your email." });
+  };
+
   const statusColors: Record<string, string> = {
     pending: "bg-accent/10 text-accent border-accent/20",
     approved: "bg-primary/10 text-primary border-primary/20",
