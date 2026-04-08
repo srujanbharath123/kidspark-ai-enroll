@@ -18,6 +18,13 @@ Deno.serve(async (req) => {
       course_id,
       child_name,
       child_age,
+      child_class,
+      child_school,
+      slot_id,
+      trainer_id,
+      slot_date,
+      slot_start_time,
+      slot_end_time,
     } = await req.json();
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !course_id || !child_name || !child_age) {
@@ -88,7 +95,13 @@ Deno.serve(async (req) => {
     if (!childId) {
       const { data: newChild, error: childError } = await supabase
         .from("children")
-        .insert({ parent_id: user.id, name: child_name, age: child_age })
+        .insert({
+          parent_id: user.id,
+          name: child_name,
+          age: child_age,
+          class: child_class || "",
+          school: child_school || "",
+        })
         .select("id")
         .single();
 
@@ -118,6 +131,28 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Payment verified but enrollment creation failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // If a slot was selected, create session and mark slot as booked
+    if (slot_id && trainer_id && slot_date && slot_start_time && slot_end_time) {
+      const { error: sessionError } = await supabase.from("sessions").insert({
+        parent_id: user.id,
+        trainer_id,
+        child_id: childId,
+        course_id,
+        availability_id: slot_id,
+        date: slot_date,
+        start_time: slot_start_time,
+        end_time: slot_end_time,
+        notes: `Payment: ${razorpay_payment_id}`,
+      });
+
+      if (sessionError) {
+        console.error("Session creation error:", sessionError);
+        // Don't fail the whole thing — enrollment is already created
+      } else {
+        await supabase.from("trainer_availability").update({ is_booked: true }).eq("id", slot_id);
+      }
     }
 
     return new Response(
