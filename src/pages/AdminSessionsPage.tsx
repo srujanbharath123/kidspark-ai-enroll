@@ -495,16 +495,61 @@ const AdminSessionsPage = () => {
                   <p className="text-sm text-muted-foreground">No sessions yet.</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {sessions.map((s) => (
-                    <div key={s.id} className="bg-card rounded-xl border border-border/50 p-4 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold">{s.child_name} – {s.course_title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {s.date} · {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)} · Trainer: {s.trainer_name}
-                        </p>
+                    <div key={s.id} className="bg-card rounded-2xl border border-border/50 p-5 shadow-card">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">{s.child_name} – {s.course_title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {s.date} · {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)} · Trainer: {s.trainer_name}
+                          </p>
+                          {s.meet_link && (
+                            <a href={s.meet_link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                              <Link2 className="w-3 h-3" /> {s.meet_link}
+                            </a>
+                          )}
+                        </div>
+                        <Badge variant="outline" className={statusColors[s.status] || ""}>{s.status}</Badge>
                       </div>
-                      <Badge variant="outline" className={statusColors[s.status] || ""}>{s.status}</Badge>
+
+                      {/* Meet link edit */}
+                      {editingMeetLink === s.id ? (
+                        <div className="mt-3 flex items-center gap-2">
+                          <Input
+                            value={meetLinkValue}
+                            onChange={(e) => setMeetLinkValue(e.target.value)}
+                            placeholder="https://meet.google.com/..."
+                            className="rounded-xl text-sm flex-1"
+                          />
+                          <Button variant="hero" size="sm" onClick={() => handleSaveMeetLink(s.id)}>
+                            <Check className="w-4 h-4" /> Save
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => setEditingMeetLink(null)}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setEditingMeetLink(s.id); setMeetLinkValue(s.meet_link || ""); }}
+                          >
+                            <Link2 className="w-4 h-4" /> {s.meet_link ? "Edit Link" : "Add Meet Link"}
+                          </Button>
+                          {s.meet_link && (
+                            <>
+                              <Button variant="outline" size="sm" onClick={() => handleSendWhatsApp(s)} className="text-success">
+                                <MessageCircle className="w-4 h-4" /> WhatsApp
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleCopyEmail(s)} className="text-primary">
+                                <Mail className="w-4 h-4" /> Copy for Email
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
