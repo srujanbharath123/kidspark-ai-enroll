@@ -541,8 +541,8 @@ const EnrollPage = () => {
 
             {paymentDone ? (
               <div className="bg-card rounded-2xl border border-border/50 p-12 shadow-card text-center space-y-4">
-                <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center">
-                  <Check className="w-10 h-10 text-green-600" />
+                <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                  <Check className="w-10 h-10 text-primary" />
                 </div>
                 <h3 className="text-xl font-bold font-display">Payment Successful!</h3>
                 <p className="text-sm text-muted-foreground">Redirecting to your dashboard...</p>
