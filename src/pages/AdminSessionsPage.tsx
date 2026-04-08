@@ -118,7 +118,7 @@ const AdminSessionsPage = () => {
     // Fetch all sessions to know which enrollments already have assignments
     const { data: sessData } = await supabase
       .from("sessions")
-      .select("id, date, start_time, end_time, status, trainer_id, parent_id, child_id, course_id")
+      .select("id, date, start_time, end_time, status, trainer_id, parent_id, child_id, course_id, meet_link")
       .order("date", { ascending: false });
 
     const assignedChildCourses = new Set(
