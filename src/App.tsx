@@ -18,6 +18,7 @@ import EnrollmentsPage from "./pages/EnrollmentsPage";
 import SessionsPage from "./pages/SessionsPage";
 import TrainerAvailabilityPage from "./pages/TrainerAvailabilityPage";
 import UsersPage from "./pages/UsersPage";
+import EnrollPage from "./pages/EnrollPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
