@@ -171,6 +171,7 @@ const AdminSessionsPage = () => {
           trainer_name: trainerMap.get(s.trainer_id) || "Unknown",
           child_name: s.child_id ? childMap.get(s.child_id) || "Unknown" : "N/A",
           course_title: s.course_id ? courseMap.get(s.course_id) || "Unknown" : "N/A",
+          parent_phone: parentPhoneMap.get(s.parent_id) || "",
         }))
       );
     }
