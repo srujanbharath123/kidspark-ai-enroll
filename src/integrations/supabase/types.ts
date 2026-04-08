@@ -17,26 +17,32 @@ export type Database = {
       children: {
         Row: {
           age: number
+          class: string | null
           created_at: string
           id: string
           name: string
           parent_id: string
+          school: string | null
           updated_at: string
         }
         Insert: {
           age: number
+          class?: string | null
           created_at?: string
           id?: string
           name: string
           parent_id: string
+          school?: string | null
           updated_at?: string
         }
         Update: {
           age?: number
+          class?: string | null
           created_at?: string
           id?: string
           name?: string
           parent_id?: string
+          school?: string | null
           updated_at?: string
         }
         Relationships: []
