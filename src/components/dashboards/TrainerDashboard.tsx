@@ -22,12 +22,14 @@ interface AssignedStudent {
   start_time: string;
   end_time: string;
   status: string;
+  meet_link: string | null;
   child_name: string;
   child_age: number;
   child_class: string | null;
   child_school: string | null;
   course_title: string;
   parent_name: string;
+  parent_phone: string;
 }
 
 const TrainerDashboard = () => {
