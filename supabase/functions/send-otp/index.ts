@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
-const DUMMY_PHONE = "+919999999999";
+const DUMMY_PHONES = ["+919999999999", "+917995670899"];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -36,8 +36,8 @@ serve(async (req) => {
       .insert({ phone, code, expires_at });
     if (insertErr) throw new Error("Failed to store OTP: " + insertErr.message);
 
-    // For dummy phone, skip Twilio send
-    if (phone === DUMMY_PHONE) {
+    // For dummy phones, skip Twilio send
+    if (DUMMY_PHONES.includes(phone)) {
       return new Response(
         JSON.stringify({ success: true, message: "OTP sent (dummy: 123456)", dummy: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

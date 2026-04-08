@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DUMMY_PHONE = "+919999999999";
+const DUMMY_PHONES = ["+919999999999", "+917995670899"];
 const DUMMY_CODE = "123456";
 
 serve(async (req) => {
@@ -30,7 +30,7 @@ serve(async (req) => {
     );
 
     // For dummy phone, accept dummy code directly
-    if (phone === DUMMY_PHONE && code === DUMMY_CODE) {
+    if (DUMMY_PHONES.includes(phone) && code === DUMMY_CODE) {
       // proceed to auth
     } else {
       // Verify OTP from database
