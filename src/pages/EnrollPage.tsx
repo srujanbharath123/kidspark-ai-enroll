@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   Check, CreditCard, Loader2, ArrowLeft, ArrowRight,
-  Sparkles, GraduationCap, User, Calendar, Clock, Mail, Eye, EyeOff, ShieldCheck,
+  Sparkles, GraduationCap, User, Calendar, Clock, Mail, ShieldCheck,
 } from "lucide-react";
 
 interface Course {
