@@ -91,12 +91,14 @@ const TrainerDashboard = () => {
               start_time: s.start_time,
               end_time: s.end_time,
               status: s.status,
+              meet_link: s.meet_link,
               child_name: child?.name || "Unknown",
               child_age: child?.age || 0,
               child_class: child?.class || null,
               child_school: child?.school || null,
               course_title: s.course_id ? courseMap.get(s.course_id) || "N/A" : "N/A",
               parent_name: parentMap.get(s.parent_id) || "Unknown",
+              parent_phone: parentPhoneMap.get(s.parent_id) || "",
             };
           });
         setAssignedStudents(assigned);
