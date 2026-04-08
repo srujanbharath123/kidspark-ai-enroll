@@ -483,14 +483,14 @@ const EnrollPage = () => {
           </div>
         )}
 
-        {/* Step 3: Sign Up / Login */}
+        {/* Step 3: Phone OTP Auth */}
         {step === 3 && (
           <div className="max-w-md mx-auto">
             <h2 className="text-2xl font-bold font-display mb-2 text-center">
-              {authMode === "signup" ? "Create Your Account" : "Welcome Back"}
+              {authOtpSent ? "Enter Verification Code" : "Verify Your Phone"}
             </h2>
             <p className="text-sm text-muted-foreground text-center mb-8">
-              {authMode === "signup" ? "Sign up to complete your enrollment" : "Login to continue with payment"}
+              {authOtpSent ? "Enter the OTP sent to your phone" : "We'll send a verification code to your mobile"}
             </p>
 
             <div className="bg-card rounded-2xl border border-border/50 p-8 shadow-card">
@@ -498,45 +498,50 @@ const EnrollPage = () => {
                 <ShieldCheck className="w-8 h-8 text-primary" />
               </div>
 
-              {/* Toggle */}
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                <button onClick={() => setAuthMode("signup")}
-                  className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
-                    authMode === "signup" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/30"
-                  }`}>
-                  Sign Up
-                </button>
-                <button onClick={() => setAuthMode("login")}
-                  className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
-                    authMode === "login" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/30"
-                  }`}>
-                  Login
-                </button>
-              </div>
-
-              <form onSubmit={handleAuth} className="space-y-4">
-                <div>
-                  <Label htmlFor="authEmail">Email</Label>
-                  <Input id="authEmail" type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)}
-                    placeholder="parent@example.com" required className="mt-1.5 rounded-xl h-11" />
-                </div>
-                <div>
-                  <Label htmlFor="authPassword">Password</Label>
-                  <div className="relative mt-1.5">
-                    <Input id="authPassword" type={showPassword ? "text" : "password"} value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)} placeholder={authMode === "signup" ? "Min 6 characters" : "••••••••"}
-                      required className="rounded-xl h-11 pr-10" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+              {!authOtpSent ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="authPhone">Mobile Number</Label>
+                    <Input
+                      id="authPhone"
+                      type="tel"
+                      value={authPhone}
+                      onChange={(e) => setAuthPhone(e.target.value.replace(/[^\d+]/g, ""))}
+                      placeholder="+919876543210"
+                      required
+                      className="mt-1.5 rounded-xl h-11"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Dummy: +919999999999</p>
                   </div>
+                  <Button variant="hero" size="lg" className="w-full" onClick={handleSendAuthOtp} disabled={authLoading}>
+                    {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : "Send OTP"}
+                  </Button>
                 </div>
-                <Button variant="hero" size="lg" className="w-full" type="submit" disabled={authLoading}>
-                  {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Please wait...</> :
-                    authMode === "signup" ? "Create Account & Continue" : "Login & Continue"}
-                </Button>
-              </form>
+              ) : (
+                <form onSubmit={handleVerifyAuthOtp} className="space-y-4">
+                  <div>
+                    <Label>Verification Code</Label>
+                    <Input
+                      type="text"
+                      maxLength={6}
+                      value={authOtp}
+                      onChange={(e) => setAuthOtp(e.target.value.replace(/\D/g, ""))}
+                      placeholder="Enter 6-digit OTP"
+                      className="mt-1.5 rounded-xl h-11 text-center text-lg tracking-widest"
+                    />
+                    {authIsDummy && (
+                      <p className="text-xs text-center text-primary mt-2 font-medium">Dummy OTP: 123456</p>
+                    )}
+                  </div>
+                  <Button variant="hero" size="lg" className="w-full" type="submit" disabled={authLoading}>
+                    {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</> : "Verify & Continue"}
+                  </Button>
+                  <button type="button" onClick={() => { setAuthOtpSent(false); setAuthOtp(""); }}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Change phone number
+                  </button>
+                </form>
+              )}
             </div>
 
             <div className="flex justify-start mt-8">
