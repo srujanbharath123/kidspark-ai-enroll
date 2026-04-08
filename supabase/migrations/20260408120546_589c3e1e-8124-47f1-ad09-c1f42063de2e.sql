@@ -1,0 +1,1 @@
+UPDATE profiles SET phone = '+917995670899' WHERE user_id = (SELECT user_id FROM user_roles WHERE role = 'admin' LIMIT 1);
