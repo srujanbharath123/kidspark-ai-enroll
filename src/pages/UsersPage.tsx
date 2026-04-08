@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { Plus, Check, X, Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
 
 interface UserProfile {
@@ -30,11 +33,8 @@ const UsersPage = () => {
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
     if (!profiles) return;
-
-    // Fetch roles
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
     const roleMap = new Map((roles || []).map((r) => [r.user_id, r.role]));
-
     setUsers(profiles.map((p) => ({ ...p, role: roleMap.get(p.user_id) || "parent" })));
   };
 
@@ -49,14 +49,12 @@ const UsersPage = () => {
       toast({ title: "Password must be at least 6 characters", variant: "destructive" });
       return;
     }
-
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-trainer", {
         body: { email: trainerEmail.trim(), password: trainerPassword, full_name: trainerName.trim() },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Failed to create trainer");
-
       toast({ title: "Trainer created! ✅", description: `${trainerName} can now log in.` });
       setShowForm(false);
       setTrainerName("");
@@ -78,7 +76,7 @@ const UsersPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-3xl">
+      <div>
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-2xl font-bold font-display">Users</h1>
           <Button variant="hero" size="sm" onClick={() => setShowForm(true)}>
@@ -130,20 +128,35 @@ const UsersPage = () => {
             <p className="text-muted-foreground">No users yet.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {users.map((u) => (
-              <div key={u.id} className="bg-card rounded-2xl border border-border/50 p-4 shadow-card flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">{u.full_name || "Unnamed"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {u.phone || "No phone"} · Joined {new Date(u.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <Badge variant="outline" className={roleColors[u.role || "parent"] || ""}>
-                  {u.role || "parent"}
-                </Badge>
-              </div>
-            ))}
+          <div className="bg-card rounded-2xl border border-border/50 shadow-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-bold">#</TableHead>
+                  <TableHead className="font-bold">Name</TableHead>
+                  <TableHead className="font-bold">Phone</TableHead>
+                  <TableHead className="font-bold">Role</TableHead>
+                  <TableHead className="font-bold">Joined</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((u, i) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                    <TableCell className="font-semibold">{u.full_name || "Unnamed"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{u.phone || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={roleColors[u.role || "parent"] || ""}>
+                        {u.role || "parent"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(u.created_at).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
