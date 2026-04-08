@@ -125,15 +125,20 @@ const AdminSessionsPage = () => {
       (sessData || []).map((s) => `${s.child_id}_${s.course_id}`)
     );
 
-    // Get parent names
-    const parentIds = [...new Set((enrollData || []).map((e) => e.parent_id))];
+    // Get parent names and contact info for both enrollments and sessions
+    const allParentIds = [...new Set([
+      ...(enrollData || []).map((e) => e.parent_id),
+      ...(sessData || []).map((s) => s.parent_id),
+    ])];
     let parentMap = new Map<string, string>();
-    if (parentIds.length > 0) {
+    let parentPhoneMap = new Map<string, string>();
+    if (allParentIds.length > 0) {
       const { data: parentProfiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", parentIds);
+        .select("user_id, full_name, phone")
+        .in("user_id", allParentIds);
       parentMap = new Map((parentProfiles || []).map((p) => [p.user_id, p.full_name]));
+      parentPhoneMap = new Map((parentProfiles || []).map((p) => [p.user_id, p.phone || ""]));
     }
 
     const unassigned = (enrollData || [])
