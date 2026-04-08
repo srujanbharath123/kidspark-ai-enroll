@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Check, X, Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
+import { Plus, Check, X, Eye, EyeOff, Loader2, UserPlus, Search } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -28,7 +31,17 @@ const UsersPage = () => {
   const [trainerPassword, setTrainerPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   const { toast } = useToast();
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      const matchesSearch = !searchQuery || u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.phone?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesRole = roleFilter === "all" || u.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, searchQuery, roleFilter]);
 
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -83,7 +96,30 @@ const UsersPage = () => {
             <UserPlus className="w-4 h-4" /> Add Trainer
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground mb-8">All registered users</p>
+        <p className="text-sm text-muted-foreground mb-4">All registered users</p>
+
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 rounded-xl"
+            />
+          </div>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-full sm:w-[160px] rounded-xl">
+              <SelectValue placeholder="Filter by role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="trainer">Trainer</SelectItem>
+              <SelectItem value="parent">Parent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {showForm && (
           <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-card mb-6">
@@ -123,7 +159,7 @@ const UsersPage = () => {
           </div>
         )}
 
-        {users.length === 0 ? (
+        {filteredUsers.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border/50 p-8 text-center shadow-card">
             <p className="text-muted-foreground">No users yet.</p>
           </div>
@@ -140,7 +176,7 @@ const UsersPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((u, i) => (
+                {filteredUsers.map((u, i) => (
                   <TableRow key={u.id}>
                     <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="font-semibold">{u.full_name || "Unnamed"}</TableCell>
