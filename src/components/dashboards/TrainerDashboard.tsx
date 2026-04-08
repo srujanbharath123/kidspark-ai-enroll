@@ -73,7 +73,7 @@ const TrainerDashboard = () => {
         const [childRes, courseRes, parentRes] = await Promise.all([
           childIds.length > 0 ? supabase.from("children").select("id, name, age, class, school").in("id", childIds) : { data: [] },
           courseIds.length > 0 ? supabase.from("courses").select("id, title").in("id", courseIds) : { data: [] },
-          parentIds.length > 0 ? supabase.from("profiles").select("user_id, full_name").in("user_id", parentIds) : { data: [] },
+          parentIds.length > 0 ? supabase.from("profiles").select("user_id, full_name, phone").in("user_id", parentIds) : { data: [] },
         ]);
 
         const childMap = new Map((childRes.data || []).map((c) => [c.id, c]));
