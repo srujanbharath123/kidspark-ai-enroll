@@ -57,7 +57,7 @@ const TrainerDashboard = () => {
 
       const { data: sessData } = await supabase
         .from("sessions")
-        .select("id, date, start_time, end_time, status, child_id, course_id, parent_id")
+        .select("id, date, start_time, end_time, status, child_id, course_id, parent_id, meet_link")
         .eq("trainer_id", user.id)
         .order("date", { ascending: false });
 
