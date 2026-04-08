@@ -221,9 +221,51 @@ const TrainerDashboard = () => {
                       <Clock className="w-3 h-3" />
                       {new Date(s.date + "T00:00").toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" })} · {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
                     </p>
+                    {s.meet_link && (
+                      <a href={s.meet_link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                        <Link2 className="w-3 h-3" /> {s.meet_link}
+                      </a>
+                    )}
                   </div>
                   <Badge variant="outline" className={statusColors[s.status] || ""}>{s.status}</Badge>
                 </div>
+
+                {editingMeetLink === s.id ? (
+                  <div className="mt-3 flex items-center gap-2">
+                    <Input
+                      value={meetLinkValue}
+                      onChange={(e) => setMeetLinkValue(e.target.value)}
+                      placeholder="https://meet.google.com/..."
+                      className="rounded-xl text-sm flex-1"
+                    />
+                    <Button variant="hero" size="sm" onClick={() => handleSaveMeetLink(s.id)}>
+                      <Check className="w-4 h-4" /> Save
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setEditingMeetLink(null)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setEditingMeetLink(s.id); setMeetLinkValue(s.meet_link || ""); }}
+                    >
+                      <Link2 className="w-4 h-4" /> {s.meet_link ? "Edit Link" : "Add Meet Link"}
+                    </Button>
+                    {s.meet_link && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => handleSendWhatsApp(s)} className="text-success">
+                          <MessageCircle className="w-4 h-4" /> WhatsApp
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleCopyEmail(s)} className="text-primary">
+                          <Mail className="w-4 h-4" /> Copy for Email
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
