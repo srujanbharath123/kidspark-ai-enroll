@@ -96,7 +96,30 @@ const UsersPage = () => {
             <UserPlus className="w-4 h-4" /> Add Trainer
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground mb-8">All registered users</p>
+        <p className="text-sm text-muted-foreground mb-4">All registered users</p>
+
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 rounded-xl"
+            />
+          </div>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-full sm:w-[160px] rounded-xl">
+              <SelectValue placeholder="Filter by role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="trainer">Trainer</SelectItem>
+              <SelectItem value="parent">Parent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {showForm && (
           <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-card mb-6">
