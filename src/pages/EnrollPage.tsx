@@ -720,7 +720,7 @@ const EnrollPage = () => {
                   <div>
                     <h3 className="font-bold">{parentName}</h3>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-green-600" /> +91{parentPhone.replace(/\D/g, "").slice(-10)} (verified)
+                      <ShieldCheck className="w-3 h-3 text-primary" /> +91{parentPhone.replace(/\D/g, "").slice(-10)} (verified)
                     </p>
                   </div>
                 </div>
