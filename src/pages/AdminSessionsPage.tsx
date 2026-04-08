@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Plus, Trash2, Calendar, Clock, Users, UserPlus, Loader2, Check, X,
+  Plus, Trash2, Calendar, Clock, Users, UserPlus, Loader2, Check, X, Link2, Send, MessageCircle, Mail,
 } from "lucide-react";
 
 interface Trainer {
