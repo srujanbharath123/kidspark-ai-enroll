@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Sparkles, ArrowLeft, Loader2, Phone } from "lucide-react";
+import { Sparkles, ArrowLeft, Loader2, Phone, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
@@ -12,6 +12,7 @@ type UserRole = "parent" | "trainer";
 
 const Signup = () => {
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<UserRole>("parent");
   const [otp, setOtp] = useState("");
@@ -60,7 +61,7 @@ const Signup = () => {
     const formattedPhone = phone.startsWith("+") ? phone : `+91${phone}`;
     setIsLoading(true);
     try {
-      await verifyOtp(formattedPhone, otp, fullName, role);
+      await verifyOtp(formattedPhone, otp, fullName, role, email || undefined);
       toast({ title: "Account created! 🎉", description: "Welcome to TechWindows!" });
       navigate("/dashboard");
     } catch (error: any) {
@@ -121,6 +122,24 @@ const Signup = () => {
                   required
                   className="mt-1.5 rounded-xl h-11"
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="email">Email Address <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                <div className="relative mt-1.5">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="rounded-xl h-11 pl-10"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  For receiving meeting links and notifications
+                </p>
               </div>
 
               <div>
