@@ -134,8 +134,14 @@ const TrainerDashboard = () => {
     } else {
       toast({ title: "Meeting link saved! ✅" });
       setEditingMeetLink(null);
+      const updatedStudents = assignedStudents.map((s) => s.id === sessionId ? { ...s, meet_link: meetLinkValue } : s);
+      setAssignedStudents(updatedStudents);
+      // Auto-send WhatsApp notification to parent
+      const student = updatedStudents.find((s) => s.id === sessionId);
+      if (student && student.parent_phone) {
+        handleSendWhatsApp(student);
+      }
       setMeetLinkValue("");
-      setAssignedStudents((prev) => prev.map((s) => s.id === sessionId ? { ...s, meet_link: meetLinkValue } : s));
     }
   };
 

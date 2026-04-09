@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Users, Calendar, ArrowRight, Clock } from "lucide-react";
+import { BookOpen, Users, Calendar, ArrowRight, Clock, Link2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ interface UpcomingSession {
   start_time: string;
   end_time: string;
   status: string;
+  meet_link: string | null;
 }
 
 const ParentDashboard = () => {
@@ -53,7 +54,7 @@ const ParentDashboard = () => {
       const today = new Date().toISOString().split("T")[0];
       const { data: sessData } = await supabase
         .from("sessions")
-        .select("id, date, start_time, end_time, status")
+        .select("id, date, start_time, end_time, status, meet_link")
         .eq("parent_id", user.id)
         .gte("date", today)
         .order("date")
@@ -164,6 +165,11 @@ const ParentDashboard = () => {
                         {new Date(s.date + "T00:00").toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" })}
                       </p>
                       <p className="text-xs text-muted-foreground">{s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}</p>
+                      {s.meet_link && (
+                        <a href={s.meet_link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5">
+                          <Link2 className="w-3 h-3" /> Join Meeting
+                        </a>
+                      )}
                     </div>
                   </div>
                   <Badge variant="outline" className={statusColors[s.status] || ""}>{s.status}</Badge>
