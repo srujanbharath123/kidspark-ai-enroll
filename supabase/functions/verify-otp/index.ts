@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, code, full_name, role } = await req.json();
+    const { phone, code, full_name, role, email: userEmail_input } = await req.json();
     if (!phone || !/^\+\d{10,15}$/.test(phone)) {
       throw new Error("Valid phone number required");
     }
@@ -93,10 +93,12 @@ serve(async (req) => {
       userId = newUser.user.id;
       userEmail = email;
 
-      // Update profile with phone
+      // Update profile with phone and email
+      const profileUpdate: Record<string, string> = { phone };
+      if (userEmail_input) profileUpdate.email = userEmail_input;
       await supabaseAdmin
         .from("profiles")
-        .update({ phone })
+        .update(profileUpdate)
         .eq("user_id", userId);
     }
 
