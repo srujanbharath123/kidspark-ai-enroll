@@ -20,6 +20,7 @@ import TrainerAvailabilityPage from "./pages/TrainerAvailabilityPage";
 import UsersPage from "./pages/UsersPage";
 import AdminSessionsPage from "./pages/AdminSessionsPage";
 import EnrollPage from "./pages/EnrollPage";
+import UnsubscribePage from "./pages/UnsubscribePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/dashboard/availability" element={<ProtectedRoute allowedRoles={["trainer"]}><TrainerAvailabilityPage /></ProtectedRoute>} />
             <Route path="/dashboard/users" element={<ProtectedRoute allowedRoles={["admin"]}><UsersPage /></ProtectedRoute>} />
             <Route path="/dashboard/admin-sessions" element={<ProtectedRoute allowedRoles={["admin"]}><AdminSessionsPage /></ProtectedRoute>} />
+            <Route path="/unsubscribe" element={<UnsubscribePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
