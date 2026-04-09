@@ -209,6 +209,18 @@ const SessionsPage = () => {
     }
   };
 
+  const handleSaveMeetLink = async (sessionId: string) => {
+    const { error } = await supabase.from("sessions").update({ meet_link: meetLinkValue }).eq("id", sessionId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Meeting link saved! ✅" });
+      setEditingMeetLink(null);
+      setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, meet_link: meetLinkValue } : s));
+      setMeetLinkValue("");
+    }
+  };
+
   const statusColors: Record<string, string> = {
     pending: "bg-accent/10 text-accent border-accent/20",
     approved: "bg-primary/10 text-primary border-primary/20",
