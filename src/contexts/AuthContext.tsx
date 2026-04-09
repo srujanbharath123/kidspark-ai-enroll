@@ -19,7 +19,7 @@ interface AuthContextType {
   role: UserRole | null;
   loading: boolean;
   sendOtp: (phone: string) => Promise<{ dummy?: boolean }>;
-  verifyOtp: (phone: string, code: string, fullName?: string, role?: UserRole) => Promise<void>;
+  verifyOtp: (phone: string, code: string, fullName?: string, role?: UserRole, email?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -87,9 +87,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { dummy: data?.dummy };
   };
 
-  const verifyOtp = async (phone: string, code: string, fullName?: string, role?: UserRole) => {
+  const verifyOtp = async (phone: string, code: string, fullName?: string, role?: UserRole, email?: string) => {
     const { data, error } = await supabase.functions.invoke("verify-otp", {
-      body: { phone, code, full_name: fullName, role },
+      body: { phone, code, full_name: fullName, role, email },
     });
     if (error) throw new Error(error.message || "OTP verification failed");
     if (data?.error) throw new Error(data.error);
