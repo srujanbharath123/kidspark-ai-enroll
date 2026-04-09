@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, X, Calendar, CreditCard, Loader2 } from "lucide-react";
+import { Plus, Check, X, Calendar, CreditCard, Loader2, Link2, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Slot {
@@ -41,6 +41,8 @@ const SessionsPage = () => {
   const [selectedChild, setSelectedChild] = useState("");
   const [children, setChildren] = useState<{ id: string; name: string }[]>([]);
   const [payingSlotId, setPayingSlotId] = useState<string | null>(null);
+  const [editingMeetLink, setEditingMeetLink] = useState<string | null>(null);
+  const [meetLinkValue, setMeetLinkValue] = useState("");
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -207,6 +209,18 @@ const SessionsPage = () => {
     }
   };
 
+  const handleSaveMeetLink = async (sessionId: string) => {
+    const { error } = await supabase.from("sessions").update({ meet_link: meetLinkValue }).eq("id", sessionId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Meeting link saved! ✅" });
+      setEditingMeetLink(null);
+      setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, meet_link: meetLinkValue } : s));
+      setMeetLinkValue("");
+    }
+  };
+
   const statusColors: Record<string, string> = {
     pending: "bg-accent/10 text-accent border-accent/20",
     approved: "bg-primary/10 text-primary border-primary/20",
@@ -330,28 +344,64 @@ const SessionsPage = () => {
           ) : (
             <div className="space-y-3">
               {sessions.map((s) => (
-                <div key={s.id} className="bg-card rounded-2xl border border-border/50 p-4 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">{s.date} · {s.start_time} - {s.end_time}</p>
-                    {s.notes && s.notes.startsWith("Payment:") && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <CreditCard className="w-3 h-3" /> Paid
-                      </p>
-                    )}
-                    {s.meet_link && <a href={s.meet_link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">Join Meeting</a>}
+                <div key={s.id} className="bg-card rounded-2xl border border-border/50 p-4 shadow-card">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">{s.date} · {s.start_time} - {s.end_time}</p>
+                      {s.notes && s.notes.startsWith("Payment:") && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <CreditCard className="w-3 h-3" /> Paid
+                        </p>
+                      )}
+                      {s.meet_link && (
+                        <a href={s.meet_link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                          <Video className="w-3 h-3" /> Join Meeting
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={statusColors[s.status] || ""}>{s.status}</Badge>
+                      {role === "trainer" && s.status === "pending" && (
+                        <div className="flex gap-1">
+                          <Button variant="default" size="sm" onClick={() => updateSessionStatus(s.id, "approved")}>Approve</Button>
+                          <Button variant="destructive" size="sm" onClick={() => updateSessionStatus(s.id, "rejected")}>Reject</Button>
+                        </div>
+                      )}
+                      {role === "trainer" && s.status === "approved" && (
+                        <Button variant="outline" size="sm" onClick={() => updateSessionStatus(s.id, "completed")}>Mark Complete</Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={statusColors[s.status] || ""}>{s.status}</Badge>
-                    {role === "trainer" && s.status === "pending" && (
-                      <div className="flex gap-1">
-                        <Button variant="default" size="sm" onClick={() => updateSessionStatus(s.id, "approved")}>Approve</Button>
-                        <Button variant="destructive" size="sm" onClick={() => updateSessionStatus(s.id, "rejected")}>Reject</Button>
-                      </div>
-                    )}
-                    {role === "trainer" && s.status === "approved" && (
-                      <Button variant="outline" size="sm" onClick={() => updateSessionStatus(s.id, "completed")}>Mark Complete</Button>
-                    )}
-                  </div>
+
+                  {/* Trainer: Meet link management */}
+                  {role === "trainer" && (s.status === "approved" || s.status === "pending") && (
+                    <div className="mt-3 pt-3 border-t border-border/30">
+                      {editingMeetLink === s.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={meetLinkValue}
+                            onChange={(e) => setMeetLinkValue(e.target.value)}
+                            placeholder="https://meet.google.com/..."
+                            className="rounded-xl text-sm flex-1"
+                          />
+                          <Button variant="hero" size="sm" onClick={() => handleSaveMeetLink(s.id)}>
+                            <Check className="w-4 h-4" /> Save
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => setEditingMeetLink(null)}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => { setEditingMeetLink(s.id); setMeetLinkValue(s.meet_link || ""); }}
+                        >
+                          <Link2 className="w-4 h-4" /> {s.meet_link ? "Edit Meet Link" : "Add Meet Link"}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
