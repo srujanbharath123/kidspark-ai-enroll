@@ -216,7 +216,59 @@ const SessionsPage = () => {
     } else {
       toast({ title: "Meeting link saved! ✅" });
       setEditingMeetLink(null);
+      const session = sessions.find((s) => s.id === sessionId);
       setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, meet_link: meetLinkValue } : s));
+
+      // Send email notification to parent
+      if (session && meetLinkValue) {
+        try {
+          // Get full session details including parent and child info
+          const { data: fullSession } = await supabase
+            .from("sessions")
+            .select("parent_id, child_id, date, start_time, end_time")
+            .eq("id", sessionId)
+            .single();
+
+          if (fullSession) {
+            const { data: parentProfile } = await supabase
+              .from("profiles")
+              .select("email, full_name")
+              .eq("user_id", fullSession.parent_id)
+              .single();
+
+            let childName = "";
+            if (fullSession.child_id) {
+              const { data: child } = await supabase
+                .from("children")
+                .select("name")
+                .eq("id", fullSession.child_id)
+                .single();
+              childName = child?.name || "";
+            }
+
+            if (parentProfile?.email) {
+              await supabase.functions.invoke("send-transactional-email", {
+                body: {
+                  templateName: "meeting-link-notification",
+                  recipientEmail: parentProfile.email,
+                  idempotencyKey: `meet-link-${sessionId}-${Date.now()}`,
+                  templateData: {
+                    childName,
+                    date: fullSession.date,
+                    startTime: fullSession.start_time,
+                    endTime: fullSession.end_time,
+                    meetLink: meetLinkValue,
+                    trainerName: profile?.full_name || "Your Trainer",
+                  },
+                },
+              });
+              toast({ title: "Email sent to parent! 📧" });
+            }
+          }
+        } catch (err) {
+          console.error("Failed to send meeting link email:", err);
+        }
+      }
       setMeetLinkValue("");
     }
   };
