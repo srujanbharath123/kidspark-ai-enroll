@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, X, Calendar, CreditCard, Loader2 } from "lucide-react";
+import { Plus, Check, X, Calendar, CreditCard, Loader2, Link2, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Slot {
@@ -41,6 +41,8 @@ const SessionsPage = () => {
   const [selectedChild, setSelectedChild] = useState("");
   const [children, setChildren] = useState<{ id: string; name: string }[]>([]);
   const [payingSlotId, setPayingSlotId] = useState<string | null>(null);
+  const [editingMeetLink, setEditingMeetLink] = useState<string | null>(null);
+  const [meetLinkValue, setMeetLinkValue] = useState("");
   const { toast } = useToast();
 
   const fetchData = async () => {
