@@ -542,6 +542,96 @@ const SessionsPage = () => {
                       )}
                     </div>
                   )}
+
+                  {/* Materials section */}
+                  {(sessionMaterials[s.id]?.length > 0 || role === "trainer") && (
+                    <div className="mt-3 pt-3 border-t border-border/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                          <FileText className="w-3 h-3" /> Materials & Resources
+                        </p>
+                        {role === "trainer" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setMaterialForm({ sessionId: s.id, title: "", description: "", type: "notification", file: null })}
+                            className="text-xs h-7"
+                          >
+                            <Upload className="w-3 h-3" /> Share
+                          </Button>
+                        )}
+                      </div>
+
+                      {materialForm?.sessionId === s.id && (
+                        <div className="bg-muted/50 rounded-xl p-3 mb-2 space-y-2">
+                          <Input
+                            value={materialForm.title}
+                            onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
+                            placeholder="Title (e.g. Homework PDF, Session Recording)"
+                            className="rounded-lg text-sm"
+                          />
+                          <Input
+                            value={materialForm.description}
+                            onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
+                            placeholder="Description (optional)"
+                            className="rounded-lg text-sm"
+                          />
+                          <div className="flex gap-2">
+                            <select
+                              value={materialForm.type}
+                              onChange={(e) => setMaterialForm({ ...materialForm, type: e.target.value })}
+                              className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs flex-shrink-0"
+                            >
+                              <option value="notification">📢 Notification</option>
+                              <option value="pdf">📄 PDF</option>
+                              <option value="video">🎥 Video</option>
+                              <option value="link">🔗 Link</option>
+                            </select>
+                            <input
+                              type="file"
+                              onChange={(e) => setMaterialForm({ ...materialForm, file: e.target.files?.[0] || null })}
+                              className="text-xs flex-1"
+                            />
+                          </div>
+                          {materialForm.type === "link" && (
+                            <Input
+                              value={materialForm.description}
+                              onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
+                              placeholder="Paste URL here"
+                              className="rounded-lg text-sm"
+                            />
+                          )}
+                          <div className="flex gap-2">
+                            <Button variant="hero" size="sm" onClick={handleUploadMaterial} disabled={!materialForm.title || uploadingMaterial}>
+                              {uploadingMaterial ? "Uploading..." : "Share"}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setMaterialForm(null)}>Cancel</Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {(sessionMaterials[s.id] || []).map((m) => (
+                        <div key={m.id} className="flex items-center gap-2 py-1.5">
+                          {m.material_type === "pdf" ? <FileText className="w-3.5 h-3.5 text-destructive shrink-0" /> :
+                           m.material_type === "video" ? <Video className="w-3.5 h-3.5 text-primary shrink-0" /> :
+                           m.material_type === "link" ? <Link2 className="w-3.5 h-3.5 text-secondary shrink-0" /> :
+                           <Bell className="w-3.5 h-3.5 text-accent shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{m.title}</p>
+                            {m.description && <p className="text-[10px] text-muted-foreground truncate">{m.description}</p>}
+                          </div>
+                          {m.file_url && (
+                            <a href={m.file_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline shrink-0">Open</a>
+                          )}
+                          {role === "trainer" && (
+                            <button onClick={() => handleDeleteMaterial(m.id, s.id)} className="text-muted-foreground hover:text-destructive shrink-0">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
