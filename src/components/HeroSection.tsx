@@ -47,9 +47,9 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-5xl sm:text-6xl lg:text-7xl font-bold font-display leading-tight mb-6"
           >
-            Your Kid's Big Ideas{" "}
+            Your Child's AI Adventure{" "}
             <br className="hidden sm:block" />
-            Deserve <span className="text-gradient">Real Tools</span>
+            <span className="text-gradient">Starts Here</span>
           </motion.h1>
 
           <motion.p
@@ -78,7 +78,7 @@ const HeroSection = () => {
               <>
                 <Button variant="hero" size="xl" asChild>
                   <Link to="/enroll">
-                    Enrol My Child Now
+                    Enroll Now
                     <ArrowRight className="w-5 h-5" />
                   </Link>
                 </Button>

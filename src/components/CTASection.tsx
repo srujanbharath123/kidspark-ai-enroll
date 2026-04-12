@@ -38,7 +38,7 @@ const CTASection = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="hero" size="xl" asChild>
               <Link to={user ? "/dashboard" : "/enroll"}>
-                {user ? "Go to Dashboard" : "Enrol My Child Now"} <ArrowRight className="w-5 h-5" />
+                {user ? "Go to Dashboard" : "Enroll Now"} <ArrowRight className="w-5 h-5" />
               </Link>
             </Button>
             {!user && (

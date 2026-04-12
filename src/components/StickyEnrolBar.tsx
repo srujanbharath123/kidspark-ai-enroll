@@ -22,7 +22,7 @@ const StickyEnrolBar = () => {
     <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card/95 backdrop-blur-xl border-t border-border/50 p-3 shadow-elevated">
       <Button variant="hero" size="lg" className="w-full" asChild>
         <Link to="/enroll">
-          Enrol My Child Now <ArrowRight className="w-4 h-4" />
+          Enroll Now <ArrowRight className="w-4 h-4" />
         </Link>
       </Button>
     </div>
