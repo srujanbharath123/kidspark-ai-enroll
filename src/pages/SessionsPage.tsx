@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, X, Calendar, CreditCard, Loader2, Link2, Video } from "lucide-react";
+import { Plus, Check, X, Calendar, CreditCard, Loader2, Link2, Video, Upload, FileText, Bell, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label as FormLabel } from "@/components/ui/label";
 
 interface Slot {
   id: string;
