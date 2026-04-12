@@ -82,20 +82,18 @@ const ParentDashboard = () => {
         .limit(3);
       if (enrollData) setRecentEnrollments(enrollData as unknown as RecentEnrollment[]);
 
-      // Fetch upcoming sessions with trainer/child/course details
-      const today = new Date().toISOString().split("T")[0];
-      const { data: sessData } = await supabase
+      // Fetch ALL sessions (upcoming + recent past) for display
+      const { data: allSessions } = await supabase
         .from("sessions")
         .select("id, date, start_time, end_time, status, meet_link, trainer_id, child_id, course_id")
         .eq("parent_id", user.id)
-        .gte("date", today)
-        .order("date")
-        .limit(5);
+        .order("date", { ascending: false })
+        .limit(30);
 
-      if (sessData && sessData.length > 0) {
-        const trainerIds = [...new Set(sessData.map(s => s.trainer_id))];
-        const childIds = [...new Set(sessData.filter(s => s.child_id).map(s => s.child_id!))];
-        const courseIds = [...new Set(sessData.filter(s => s.course_id).map(s => s.course_id!))];
+      if (allSessions && allSessions.length > 0) {
+        const trainerIds = [...new Set(allSessions.map(s => s.trainer_id))];
+        const childIds = [...new Set(allSessions.filter(s => s.child_id).map(s => s.child_id!))];
+        const courseIds = [...new Set(allSessions.filter(s => s.course_id).map(s => s.course_id!))];
 
         const [trainerRes, childRes, courseRes] = await Promise.all([
           trainerIds.length > 0 ? supabase.from("profiles").select("user_id, full_name").in("user_id", trainerIds) : { data: [] },
@@ -107,7 +105,12 @@ const ParentDashboard = () => {
         const childMap = new Map((childRes.data || []).map((c: any) => [c.id, c.name]));
         const courseMap = new Map((courseRes.data || []).map((c: any) => [c.id, c.title]));
 
-        setUpcomingSessions(sessData.map(s => ({
+        const today = new Date().toISOString().split("T")[0];
+        const upcomingOnly = allSessions
+          .filter(s => s.date >= today)
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        setUpcomingSessions(upcomingOnly.slice(0, 5).map(s => ({
           id: s.id,
           date: s.date,
           start_time: s.start_time,
@@ -119,19 +122,20 @@ const ParentDashboard = () => {
           course_title: s.course_id ? courseMap.get(s.course_id) || "" : "",
         })));
 
-        // Fetch materials for these sessions
-        const sessionIds = sessData.map(s => s.id);
+        // Fetch materials for ALL sessions in one query
+        const allSessionIds = allSessions.map(s => s.id);
         const { data: matData } = await supabase
           .from("session_materials")
           .select("id, title, description, file_url, material_type, created_at, session_id, trainer_id")
-          .in("session_id", sessionIds)
-          .order("created_at", { ascending: false });
+          .in("session_id", allSessionIds)
+          .order("created_at", { ascending: false })
+          .limit(20);
 
         if (matData && matData.length > 0) {
           const matTrainerIds = [...new Set(matData.map(m => m.trainer_id))];
           const { data: matTrainers } = await supabase.from("profiles").select("user_id, full_name").in("user_id", matTrainerIds);
           const matTrainerMap = new Map((matTrainers || []).map((t: any) => [t.user_id, t.full_name]));
-          const sessionDateMap = new Map(sessData.map(s => [s.id, s.date]));
+          const sessionDateMap = new Map(allSessions.map(s => [s.id, s.date]));
 
           setMaterials(matData.map(m => ({
             id: m.id,
@@ -142,42 +146,6 @@ const ParentDashboard = () => {
             created_at: m.created_at,
             session_date: sessionDateMap.get(m.session_id) || "",
             trainer_name: matTrainerMap.get(m.trainer_id) || "Trainer",
-          })));
-        }
-      }
-
-      // Also fetch recent materials from past sessions
-      const { data: allSessions } = await supabase
-        .from("sessions")
-        .select("id, date, trainer_id")
-        .eq("parent_id", user.id)
-        .order("date", { ascending: false })
-        .limit(20);
-
-      if (allSessions && allSessions.length > 0) {
-        const allSessionIds = allSessions.map(s => s.id);
-        const { data: allMats } = await supabase
-          .from("session_materials")
-          .select("id, title, description, file_url, material_type, created_at, session_id, trainer_id")
-          .in("session_id", allSessionIds)
-          .order("created_at", { ascending: false })
-          .limit(10);
-
-        if (allMats && allMats.length > 0) {
-          const allMatTrainerIds = [...new Set(allMats.map(m => m.trainer_id))];
-          const { data: allMatTrainers } = await supabase.from("profiles").select("user_id, full_name").in("user_id", allMatTrainerIds);
-          const allMatTrainerMap = new Map((allMatTrainers || []).map((t: any) => [t.user_id, t.full_name]));
-          const allSessionDateMap = new Map(allSessions.map(s => [s.id, s.date]));
-
-          setMaterials(allMats.map(m => ({
-            id: m.id,
-            title: m.title,
-            description: m.description,
-            file_url: m.file_url,
-            material_type: m.material_type,
-            created_at: m.created_at,
-            session_date: allSessionDateMap.get(m.session_id) || "",
-            trainer_name: allMatTrainerMap.get(m.trainer_id) || "Trainer",
           })));
         }
       }
