@@ -22,6 +22,8 @@ interface Slot {
   start_time: string;
   end_time: string;
   is_booked: boolean;
+  max_capacity: number;
+  booked_count: number;
   trainer_id: string;
   trainer_name?: string;
 }
@@ -245,8 +247,12 @@ const AdminSessionsPage = () => {
           sessionDate = slot.date;
           sessionStart = slot.start_time;
           sessionEnd = slot.end_time;
-          // Mark slot as booked
-          await supabase.from("trainer_availability").update({ is_booked: true }).eq("id", slotId);
+          // Increment booked count
+          const newCount = (slot.booked_count || 0) + 1;
+          await supabase.from("trainer_availability").update({ 
+            booked_count: newCount,
+            is_booked: newCount >= (slot.max_capacity || 100)
+          }).eq("id", slotId);
         }
       }
 
@@ -313,7 +319,7 @@ const AdminSessionsPage = () => {
   };
 
   const availableSlotsForTrainer = (trainerId: string) =>
-    slots.filter((s) => s.trainer_id === trainerId && !s.is_booked && s.date >= new Date().toISOString().split("T")[0]);
+    slots.filter((s) => s.trainer_id === trainerId && s.booked_count < s.max_capacity && s.date >= new Date().toISOString().split("T")[0]);
 
   return (
     <DashboardLayout>
@@ -388,10 +394,10 @@ const AdminSessionsPage = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={slot.is_booked ? "bg-accent/10 text-accent" : "bg-success/10 text-success"}>
-                          {slot.is_booked ? "Booked" : "Available"}
+                        <Badge variant="outline" className={slot.booked_count >= slot.max_capacity ? "bg-accent/10 text-accent" : "bg-success/10 text-success"}>
+                          {slot.booked_count >= slot.max_capacity ? "Full" : `${slot.booked_count}/${slot.max_capacity}`}
                         </Badge>
-                        {!slot.is_booked && (
+                        {slot.booked_count < slot.max_capacity && (
                           <Button variant="ghost" size="sm" onClick={() => handleDeleteSlot(slot.id)} className="text-destructive hover:text-destructive">
                             <Trash2 className="w-4 h-4" />
                           </Button>

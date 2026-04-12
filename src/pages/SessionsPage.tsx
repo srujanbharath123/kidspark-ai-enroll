@@ -15,6 +15,8 @@ interface Slot {
   start_time: string;
   end_time: string;
   is_booked: boolean;
+  max_capacity: number;
+  booked_count: number;
 }
 
 interface Session {
@@ -71,8 +73,8 @@ const SessionsPage = () => {
     if (role === "parent") {
       const { data: availData } = await supabase
         .from("trainer_availability")
-        .select("id, date, start_time, end_time, trainer_id")
-        .eq("is_booked", false)
+        .select("id, date, start_time, end_time, trainer_id, max_capacity, booked_count")
+        .lt("booked_count", 100)
         .gte("date", new Date().toISOString().split("T")[0])
         .order("date");
 
@@ -85,9 +87,9 @@ const SessionsPage = () => {
 
         const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
         setAvailableSlots(
-          availData.map((s) => ({
+          availData.filter((s) => s.booked_count < s.max_capacity).map((s) => ({
             ...s,
-            is_booked: false,
+            is_booked: s.booked_count >= s.max_capacity,
             trainer_name: profileMap.get(s.trainer_id) || "Trainer",
           }))
         );
@@ -329,7 +331,7 @@ const SessionsPage = () => {
                     <span className="text-sm">{slot.date} · {slot.start_time} - {slot.end_time}</span>
                   </div>
                   <Badge variant="outline" className={slot.is_booked ? "bg-accent/10 text-accent" : "bg-success/10 text-success"}>
-                    {slot.is_booked ? "Booked" : "Available"}
+                    {slot.is_booked ? "Full" : `${(slot as any).booked_count || 0}/${(slot as any).max_capacity || 100}`}
                   </Badge>
                 </div>
               ))}

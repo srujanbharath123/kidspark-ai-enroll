@@ -111,19 +111,19 @@ const EnrollPage = () => {
     setSlotsLoading(true);
     const { data: availData } = await supabase
       .from("trainer_availability")
-      .select("id, date, start_time, end_time, trainer_id")
-      .eq("is_booked", false)
+      .select("id, date, start_time, end_time, trainer_id, max_capacity, booked_count")
       .gte("date", new Date().toISOString().split("T")[0])
       .order("date");
 
     if (availData && availData.length > 0) {
-      const trainerIds = [...new Set(availData.map((s) => s.trainer_id))];
+      const filtered = availData.filter((s) => s.booked_count < s.max_capacity);
+      const trainerIds = [...new Set(filtered.map((s) => s.trainer_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name")
-        .in("user_id", trainerIds);
+        .in("user_id", trainerIds.length ? trainerIds : ['none']);
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
-      setAvailableSlots(availData.map((s) => ({ ...s, trainer_name: profileMap.get(s.trainer_id) || "Trainer" })));
+      setAvailableSlots(filtered.map((s) => ({ ...s, trainer_name: profileMap.get(s.trainer_id) || "Trainer" })));
     } else {
       setAvailableSlots([]);
     }
@@ -254,9 +254,19 @@ const EnrollPage = () => {
           end_time: selectedSlot.end_time,
           status: "pending",
         });
+        // Increment booked count and mark full if at capacity
+        const { data: slotData } = await supabase
+          .from("trainer_availability")
+          .select("booked_count, max_capacity")
+          .eq("id", selectedSlot.id)
+          .single();
+        const newCount = (slotData?.booked_count || 0) + 1;
         await supabase
           .from("trainer_availability")
-          .update({ is_booked: true })
+          .update({ 
+            booked_count: newCount,
+            is_booked: newCount >= (slotData?.max_capacity || 100)
+          })
           .eq("id", selectedSlot.id);
       }
 

@@ -386,29 +386,35 @@ export type Database = {
       }
       trainer_availability: {
         Row: {
+          booked_count: number
           created_at: string
           date: string
           end_time: string
           id: string
           is_booked: boolean
+          max_capacity: number
           start_time: string
           trainer_id: string
         }
         Insert: {
+          booked_count?: number
           created_at?: string
           date: string
           end_time: string
           id?: string
           is_booked?: boolean
+          max_capacity?: number
           start_time: string
           trainer_id: string
         }
         Update: {
+          booked_count?: number
           created_at?: string
           date?: string
           end_time?: string
           id?: string
           is_booked?: boolean
+          max_capacity?: number
           start_time?: string
           trainer_id?: string
         }

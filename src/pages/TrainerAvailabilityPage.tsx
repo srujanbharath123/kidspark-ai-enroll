@@ -15,6 +15,8 @@ interface Slot {
   start_time: string;
   end_time: string;
   is_booked: boolean;
+  max_capacity: number;
+  booked_count: number;
 }
 
 const TrainerAvailabilityPage = () => {
@@ -148,10 +150,10 @@ const TrainerAvailabilityPage = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={slot.is_booked ? "bg-accent/10 text-accent border-accent/20" : "bg-success/10 text-success border-success/20"}>
-                          {slot.is_booked ? "Booked" : "Available"}
+                        <Badge variant="outline" className={slot.booked_count >= slot.max_capacity ? "bg-accent/10 text-accent border-accent/20" : "bg-success/10 text-success border-success/20"}>
+                          {slot.booked_count >= slot.max_capacity ? "Full" : `${slot.booked_count}/${slot.max_capacity} booked`}
                         </Badge>
-                        {!slot.is_booked && (
+                        {slot.booked_count === 0 && (
                           <Button variant="ghost" size="icon" onClick={() => handleDelete(slot.id)} className="text-destructive hover:text-destructive">
                             <Trash2 className="w-4 h-4" />
                           </Button>
