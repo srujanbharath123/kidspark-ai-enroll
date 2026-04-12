@@ -35,24 +35,32 @@ interface AssignedStudent {
 const TrainerDashboard = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const [stats, setStats] = useState({ slots: 0, pendingSessions: 0, completedSessions: 0 });
+  const [stats, setStats] = useState({ slots: 0, pendingSessions: 0, completedSessions: 0, totalEnrolled: 0 });
   const [pendingSessions, setPendingSessions] = useState<PendingSession[]>([]);
   const [assignedStudents, setAssignedStudents] = useState<AssignedStudent[]>([]);
+  const [slotCapacities, setSlotCapacities] = useState<{ id: string; date: string; start_time: string; end_time: string; booked_count: number; max_capacity: number }[]>([]);
   const [editingMeetLink, setEditingMeetLink] = useState<string | null>(null);
   const [meetLinkValue, setMeetLinkValue] = useState("");
 
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const [slotsRes, pendingRes, completedRes] = await Promise.all([
+      const [slotsRes, pendingRes, completedRes, availRes] = await Promise.all([
         supabase.from("trainer_availability").select("id", { count: "exact" }).eq("trainer_id", user.id),
         supabase.from("sessions").select("id", { count: "exact" }).eq("trainer_id", user.id).eq("status", "pending"),
         supabase.from("sessions").select("id", { count: "exact" }).eq("trainer_id", user.id).eq("status", "completed"),
+        supabase.from("trainer_availability").select("id, date, start_time, end_time, booked_count, max_capacity").eq("trainer_id", user.id).gte("date", new Date().toISOString().split("T")[0]).order("date"),
       ]);
+
+      const upcomingSlots = availRes.data || [];
+      const totalEnrolled = upcomingSlots.reduce((sum, s) => sum + (s.booked_count || 0), 0);
+      setSlotCapacities(upcomingSlots);
+
       setStats({
         slots: slotsRes.count || 0,
         pendingSessions: pendingRes.count || 0,
         completedSessions: completedRes.count || 0,
+        totalEnrolled,
       });
 
       const { data: sessData } = await supabase
