@@ -425,52 +425,6 @@ const SessionsPage = () => {
           </div>
         )}
 
-        {/* Parent: Book sessions with payment */}
-        {role === "parent" && availableSlots.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-lg font-bold font-display mb-4">Available Slots</h2>
-            {children.length > 0 && (
-              <div className="mb-4">
-                <Label>Select Child</Label>
-                <select
-                  value={selectedChild}
-                  onChange={(e) => setSelectedChild(e.target.value)}
-                  className="w-full max-w-xs rounded-xl border border-border bg-background px-3 py-2.5 text-sm mt-1.5"
-                >
-                  <option value="">Choose a child</option>
-                  {children.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div className="space-y-2">
-              {availableSlots.map((slot) => (
-                <div key={slot.id} className="bg-card rounded-xl border border-border/50 p-4 shadow-card flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold">{slot.trainer_name}</p>
-                    <p className="text-xs text-muted-foreground">{slot.date} · {slot.start_time} - {slot.end_time}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-primary">₹{SESSION_PRICE}</span>
-                    <Button
-                      variant="hero"
-                      size="sm"
-                      onClick={() => initiatePayment(slot)}
-                      disabled={!selectedChild || payingSlotId === slot.id}
-                    >
-                      {payingSlotId === slot.id ? (
-                        <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
-                      ) : (
-                        <><CreditCard className="w-4 h-4" /> Pay & Book</>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* All: Sessions list */}
         <div>
