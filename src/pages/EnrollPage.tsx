@@ -30,7 +30,16 @@ interface AvailableSlot {
   end_time: string;
   trainer_id: string;
   trainer_name: string;
+  max_capacity: number;
+  booked_count: number;
 }
+
+const formatTimeIST = (time: string) => {
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+};
 
 const STEPS = ["Course", "Details", "Slot", "Account", "Pay"];
 
@@ -461,6 +470,7 @@ const EnrollPage = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {slots.map((slot) => {
                         const isSelected = selectedSlot?.id === slot.id;
+                        const spotsLeft = slot.max_capacity - slot.booked_count;
                         return (
                           <button key={slot.id} onClick={() => setSelectedSlot(isSelected ? null : slot)}
                             className={`bg-card rounded-xl border-2 p-4 text-left transition-all ${
@@ -470,9 +480,15 @@ const EnrollPage = () => {
                               <div>
                                 <p className="text-sm font-semibold flex items-center gap-1.5">
                                   <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                                  {slot.start_time} – {slot.end_time}
+                                  {formatTimeIST(slot.start_time)} – {formatTimeIST(slot.end_time)}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-0.5">with {slot.trainer_name}</p>
+                                <p className="text-xs mt-1">
+                                  <span className={spotsLeft <= 10 ? "text-destructive font-semibold" : "text-success font-medium"}>
+                                    {spotsLeft} spot{spotsLeft !== 1 ? "s" : ""} left
+                                  </span>
+                                  <span className="text-muted-foreground"> of {slot.max_capacity}</span>
+                                </p>
                               </div>
                               {isSelected && <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><Check className="w-3.5 h-3.5 text-primary-foreground" /></div>}
                             </div>
