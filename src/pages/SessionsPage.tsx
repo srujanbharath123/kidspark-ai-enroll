@@ -15,6 +15,8 @@ interface Slot {
   start_time: string;
   end_time: string;
   is_booked: boolean;
+  max_capacity: number;
+  booked_count: number;
 }
 
 interface Session {
