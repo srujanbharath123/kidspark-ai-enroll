@@ -11,9 +11,9 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const navLinks = [
+    { label: "Courses", href: "#courses" },
     { label: "Curriculum", href: "#curriculum" },
     { label: "How It Works", href: "#how-it-works" },
-    { label: "Testimonials", href: "#testimonials" },
     { label: "FAQ", href: "#faq" },
   ];
 
