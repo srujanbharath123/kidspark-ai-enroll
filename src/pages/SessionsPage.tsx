@@ -73,8 +73,8 @@ const SessionsPage = () => {
     if (role === "parent") {
       const { data: availData } = await supabase
         .from("trainer_availability")
-        .select("id, date, start_time, end_time, trainer_id")
-        .eq("is_booked", false)
+        .select("id, date, start_time, end_time, trainer_id, max_capacity, booked_count")
+        .lt("booked_count", 100)
         .gte("date", new Date().toISOString().split("T")[0])
         .order("date");
 
@@ -87,9 +87,9 @@ const SessionsPage = () => {
 
         const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
         setAvailableSlots(
-          availData.map((s) => ({
+          availData.filter((s) => s.booked_count < s.max_capacity).map((s) => ({
             ...s,
-            is_booked: false,
+            is_booked: s.booked_count >= s.max_capacity,
             trainer_name: profileMap.get(s.trainer_id) || "Trainer",
           }))
         );
