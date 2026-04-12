@@ -82,16 +82,6 @@ const ParentDashboard = () => {
         .limit(3);
       if (enrollData) setRecentEnrollments(enrollData as unknown as RecentEnrollment[]);
 
-      // Fetch upcoming sessions with trainer/child/course details
-      const today = new Date().toISOString().split("T")[0];
-      const { data: sessData } = await supabase
-        .from("sessions")
-        .select("id, date, start_time, end_time, status, meet_link, trainer_id, child_id, course_id")
-        .eq("parent_id", user.id)
-        .gte("date", today)
-        .order("date")
-        .limit(5);
-
       // Fetch ALL sessions (upcoming + recent past) for display
       const { data: allSessions } = await supabase
         .from("sessions")
