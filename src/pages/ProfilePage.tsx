@@ -60,7 +60,7 @@ const ProfilePage = () => {
       if (childIds.length > 0) {
         const { data: enrollData } = await supabase
           .from("enrollments")
-          .select("id, course_id, payment_status, created_at, courses(title, duration)")
+          .select("id, child_id, course_id, payment_status, created_at, courses(title, duration)")
           .eq("parent_id", user.id)
           .in("child_id", childIds);
 
