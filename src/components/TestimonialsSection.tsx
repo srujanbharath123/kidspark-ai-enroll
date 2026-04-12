@@ -17,7 +17,7 @@ const testimonials = [
   {
     name: "Sneha Gupta",
     role: "Parent of Karan, 14",
-    text: "The monthly program was comprehensive and well-structured. Karan's confidence with technology has skyrocketed. Highly recommend!",
+    text: "The bootcamp was comprehensive and well-structured. Karan's confidence with technology has skyrocketed. Highly recommend!",
     rating: 5,
   },
 ];
@@ -35,7 +35,7 @@ const TestimonialsSection = () => {
           <h2 className="text-4xl sm:text-5xl font-bold font-display mb-4">
             Parents <span className="text-gradient">Love Us</span>
           </h2>
-          <p className="text-lg text-muted-foreground">See what families are saying about TechWindows.</p>
+          <p className="text-lg text-muted-foreground">See what families are saying about Tech Windows.</p>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
