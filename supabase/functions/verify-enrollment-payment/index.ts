@@ -151,7 +151,17 @@ Deno.serve(async (req) => {
         console.error("Session creation error:", sessionError);
         // Don't fail the whole thing — enrollment is already created
       } else {
-        await supabase.from("trainer_availability").update({ is_booked: true }).eq("id", slot_id);
+        // Increment booked count
+        const { data: slotData } = await supabase
+          .from("trainer_availability")
+          .select("booked_count, max_capacity")
+          .eq("id", slot_id)
+          .single();
+        const newCount = (slotData?.booked_count || 0) + 1;
+        await supabase.from("trainer_availability").update({ 
+          booked_count: newCount,
+          is_booked: newCount >= (slotData?.max_capacity || 100)
+        }).eq("id", slot_id);
       }
     }
 

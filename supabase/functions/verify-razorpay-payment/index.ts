@@ -100,8 +100,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Mark slot as booked
-    await supabase.from("trainer_availability").update({ is_booked: true }).eq("id", slot_id);
+    // Increment booked count
+    const { data: slotData } = await supabase
+      .from("trainer_availability")
+      .select("booked_count, max_capacity")
+      .eq("id", slot_id)
+      .single();
+    const newCount = (slotData?.booked_count || 0) + 1;
+    await supabase.from("trainer_availability").update({ 
+      booked_count: newCount,
+      is_booked: newCount >= (slotData?.max_capacity || 100)
+    }).eq("id", slot_id);
 
     return new Response(
       JSON.stringify({ success: true, payment_id: razorpay_payment_id }),
