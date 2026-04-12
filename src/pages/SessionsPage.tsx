@@ -31,6 +31,16 @@ interface Session {
   notes: string | null;
 }
 
+interface SessionMaterial {
+  id: string;
+  title: string;
+  description: string | null;
+  file_url: string | null;
+  material_type: string;
+  created_at: string;
+  session_id: string;
+}
+
 const SESSION_PRICE = 499; // ₹499 per session
 
 const SessionsPage = () => {
