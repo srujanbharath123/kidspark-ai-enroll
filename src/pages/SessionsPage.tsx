@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, X, Calendar, CreditCard, Loader2, Link2, Video } from "lucide-react";
+import { Plus, Check, X, Calendar, CreditCard, Loader2, Link2, Video, Upload, FileText, Bell, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label as FormLabel } from "@/components/ui/label";
 
 interface Slot {
   id: string;
@@ -29,6 +31,16 @@ interface Session {
   notes: string | null;
 }
 
+interface SessionMaterial {
+  id: string;
+  title: string;
+  description: string | null;
+  file_url: string | null;
+  material_type: string;
+  created_at: string;
+  session_id: string;
+}
+
 const SESSION_PRICE = 499; // ₹499 per session
 
 const SessionsPage = () => {
@@ -45,6 +57,9 @@ const SessionsPage = () => {
   const [payingSlotId, setPayingSlotId] = useState<string | null>(null);
   const [editingMeetLink, setEditingMeetLink] = useState<string | null>(null);
   const [meetLinkValue, setMeetLinkValue] = useState("");
+  const [sessionMaterials, setSessionMaterials] = useState<Record<string, SessionMaterial[]>>({});
+  const [materialForm, setMaterialForm] = useState<{ sessionId: string; title: string; description: string; type: string; file: File | null } | null>(null);
+  const [uploadingMaterial, setUploadingMaterial] = useState(false);
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -101,6 +116,77 @@ const SessionsPage = () => {
   };
 
   useEffect(() => { fetchData(); }, [user, role]);
+
+  // Fetch materials for visible sessions
+  useEffect(() => {
+    if (sessions.length === 0 || !user) return;
+    const fetchMaterials = async () => {
+      const sessionIds = sessions.map(s => s.id);
+      const { data } = await supabase
+        .from("session_materials")
+        .select("*")
+        .in("session_id", sessionIds)
+        .order("created_at", { ascending: false });
+      if (data) {
+        const grouped: Record<string, SessionMaterial[]> = {};
+        data.forEach((m: any) => {
+          if (!grouped[m.session_id]) grouped[m.session_id] = [];
+          grouped[m.session_id].push(m);
+        });
+        setSessionMaterials(grouped);
+      }
+    };
+    fetchMaterials();
+  }, [sessions, user]);
+
+  const handleUploadMaterial = async () => {
+    if (!materialForm || !user) return;
+    setUploadingMaterial(true);
+    try {
+      let fileUrl: string | null = null;
+      if (materialForm.file) {
+        const ext = materialForm.file.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("session-materials")
+          .upload(path, materialForm.file);
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = supabase.storage.from("session-materials").getPublicUrl(path);
+        fileUrl = urlData.publicUrl;
+      }
+      const { error } = await supabase.from("session_materials").insert({
+        session_id: materialForm.sessionId,
+        trainer_id: user.id,
+        title: materialForm.title,
+        description: materialForm.description || null,
+        file_url: fileUrl,
+        material_type: materialForm.type as any,
+      });
+      if (error) throw error;
+      toast({ title: "Material shared! ✅" });
+      setMaterialForm(null);
+      // Refresh materials
+      const { data } = await supabase.from("session_materials").select("*").eq("session_id", materialForm.sessionId).order("created_at", { ascending: false });
+      if (data) setSessionMaterials(prev => ({ ...prev, [materialForm.sessionId]: data }));
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingMaterial(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId: string, sessionId: string) => {
+    const { error } = await supabase.from("session_materials").delete().eq("id", materialId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Material removed" });
+      setSessionMaterials(prev => ({
+        ...prev,
+        [sessionId]: (prev[sessionId] || []).filter(m => m.id !== materialId),
+      }));
+    }
+  };
 
   const addSlot = async () => {
     if (!user || !date || !startTime || !endTime) return;
@@ -454,6 +540,96 @@ const SessionsPage = () => {
                           <Link2 className="w-4 h-4" /> {s.meet_link ? "Edit Meet Link" : "Add Meet Link"}
                         </Button>
                       )}
+                    </div>
+                  )}
+
+                  {/* Materials section */}
+                  {(sessionMaterials[s.id]?.length > 0 || role === "trainer") && (
+                    <div className="mt-3 pt-3 border-t border-border/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                          <FileText className="w-3 h-3" /> Materials & Resources
+                        </p>
+                        {role === "trainer" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setMaterialForm({ sessionId: s.id, title: "", description: "", type: "notification", file: null })}
+                            className="text-xs h-7"
+                          >
+                            <Upload className="w-3 h-3" /> Share
+                          </Button>
+                        )}
+                      </div>
+
+                      {materialForm?.sessionId === s.id && (
+                        <div className="bg-muted/50 rounded-xl p-3 mb-2 space-y-2">
+                          <Input
+                            value={materialForm.title}
+                            onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
+                            placeholder="Title (e.g. Homework PDF, Session Recording)"
+                            className="rounded-lg text-sm"
+                          />
+                          <Input
+                            value={materialForm.description}
+                            onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
+                            placeholder="Description (optional)"
+                            className="rounded-lg text-sm"
+                          />
+                          <div className="flex gap-2">
+                            <select
+                              value={materialForm.type}
+                              onChange={(e) => setMaterialForm({ ...materialForm, type: e.target.value })}
+                              className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs flex-shrink-0"
+                            >
+                              <option value="notification">📢 Notification</option>
+                              <option value="pdf">📄 PDF</option>
+                              <option value="video">🎥 Video</option>
+                              <option value="link">🔗 Link</option>
+                            </select>
+                            <input
+                              type="file"
+                              onChange={(e) => setMaterialForm({ ...materialForm, file: e.target.files?.[0] || null })}
+                              className="text-xs flex-1"
+                            />
+                          </div>
+                          {materialForm.type === "link" && (
+                            <Input
+                              value={materialForm.description}
+                              onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
+                              placeholder="Paste URL here"
+                              className="rounded-lg text-sm"
+                            />
+                          )}
+                          <div className="flex gap-2">
+                            <Button variant="hero" size="sm" onClick={handleUploadMaterial} disabled={!materialForm.title || uploadingMaterial}>
+                              {uploadingMaterial ? "Uploading..." : "Share"}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setMaterialForm(null)}>Cancel</Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {(sessionMaterials[s.id] || []).map((m) => (
+                        <div key={m.id} className="flex items-center gap-2 py-1.5">
+                          {m.material_type === "pdf" ? <FileText className="w-3.5 h-3.5 text-destructive shrink-0" /> :
+                           m.material_type === "video" ? <Video className="w-3.5 h-3.5 text-primary shrink-0" /> :
+                           m.material_type === "link" ? <Link2 className="w-3.5 h-3.5 text-secondary shrink-0" /> :
+                           <Bell className="w-3.5 h-3.5 text-accent shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{m.title}</p>
+                            {m.description && <p className="text-[10px] text-muted-foreground truncate">{m.description}</p>}
+                          </div>
+                          {m.file_url && (
+                            <a href={m.file_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline shrink-0">Open</a>
+                          )}
+                          {role === "trainer" && (
+                            <button onClick={() => handleDeleteMaterial(m.id, s.id)} className="text-muted-foreground hover:text-destructive shrink-0">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

@@ -290,6 +290,47 @@ export type Database = {
         }
         Relationships: []
       }
+      session_materials: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_url: string | null
+          id: string
+          material_type: Database["public"]["Enums"]["material_type"]
+          session_id: string
+          title: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          material_type?: Database["public"]["Enums"]["material_type"]
+          session_id: string
+          title: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          material_type?: Database["public"]["Enums"]["material_type"]
+          session_id?: string
+          title?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_materials_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sessions: {
         Row: {
           availability_id: string | null
@@ -481,6 +522,7 @@ export type Database = {
     }
     Enums: {
       app_role: "parent" | "trainer" | "admin"
+      material_type: "pdf" | "video" | "link" | "notification"
       payment_status: "pending" | "completed" | "failed" | "refunded"
       session_status: "pending" | "approved" | "completed" | "rejected"
     }
@@ -611,6 +653,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["parent", "trainer", "admin"],
+      material_type: ["pdf", "video", "link", "notification"],
       payment_status: ["pending", "completed", "failed", "refunded"],
       session_status: ["pending", "approved", "completed", "rejected"],
     },
