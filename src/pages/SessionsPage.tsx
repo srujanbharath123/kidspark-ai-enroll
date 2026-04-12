@@ -57,6 +57,9 @@ const SessionsPage = () => {
   const [payingSlotId, setPayingSlotId] = useState<string | null>(null);
   const [editingMeetLink, setEditingMeetLink] = useState<string | null>(null);
   const [meetLinkValue, setMeetLinkValue] = useState("");
+  const [sessionMaterials, setSessionMaterials] = useState<Record<string, SessionMaterial[]>>({});
+  const [materialForm, setMaterialForm] = useState<{ sessionId: string; title: string; description: string; type: string; file: File | null } | null>(null);
+  const [uploadingMaterial, setUploadingMaterial] = useState(false);
   const { toast } = useToast();
 
   const fetchData = async () => {
