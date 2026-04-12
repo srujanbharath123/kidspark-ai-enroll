@@ -155,6 +155,7 @@ const TrainerDashboard = () => {
 
   const cards = [
     { label: "Time Slots", value: stats.slots, icon: Calendar, color: "text-primary bg-primary/10", link: "/dashboard/availability" },
+    { label: "Enrolled Students", value: stats.totalEnrolled, icon: GraduationCap, color: "text-secondary bg-secondary/10", link: "/dashboard/availability" },
     { label: "Pending Sessions", value: stats.pendingSessions, icon: Users, color: "text-accent bg-accent/10", link: "/dashboard/sessions" },
     { label: "Completed", value: stats.completedSessions, icon: CheckCircle, color: "text-success bg-success/10", link: "/dashboard/sessions" },
   ];
