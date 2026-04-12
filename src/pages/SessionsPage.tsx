@@ -331,7 +331,7 @@ const SessionsPage = () => {
                     <span className="text-sm">{slot.date} · {slot.start_time} - {slot.end_time}</span>
                   </div>
                   <Badge variant="outline" className={slot.is_booked ? "bg-accent/10 text-accent" : "bg-success/10 text-success"}>
-                    {slot.is_booked ? "Booked" : "Available"}
+                    {slot.is_booked ? "Full" : `${(slot as any).booked_count || 0}/${(slot as any).max_capacity || 100}`}
                   </Badge>
                 </div>
               ))}
