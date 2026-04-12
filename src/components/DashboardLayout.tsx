@@ -30,6 +30,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const parentLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/profile", label: "Profile", icon: Settings },
     { href: "/dashboard/children", label: "My Children", icon: Users },
     { href: "/dashboard/courses", label: "Courses", icon: BookOpen },
     { href: "/dashboard/enrollments", label: "Enrollments", icon: CreditCard },

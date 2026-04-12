@@ -20,6 +20,7 @@ import TrainerAvailabilityPage from "./pages/TrainerAvailabilityPage";
 import UsersPage from "./pages/UsersPage";
 import AdminSessionsPage from "./pages/AdminSessionsPage";
 import EnrollPage from "./pages/EnrollPage";
+import ProfilePage from "./pages/ProfilePage";
 import UnsubscribePage from "./pages/UnsubscribePage";
 import NotFound from "./pages/NotFound";
 
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/dashboard/children" element={<ProtectedRoute allowedRoles={["parent"]}><ChildrenPage /></ProtectedRoute>} />
+            <Route path="/dashboard/profile" element={<ProtectedRoute allowedRoles={["parent"]}><ProfilePage /></ProtectedRoute>} />
             <Route path="/dashboard/courses" element={<ProtectedRoute allowedRoles={["parent"]}><CoursesPage /></ProtectedRoute>} />
             <Route path="/dashboard/manage-courses" element={<ProtectedRoute allowedRoles={["admin"]}><AdminCoursesPage /></ProtectedRoute>} />
             <Route path="/dashboard/enrollments" element={<ProtectedRoute allowedRoles={["parent", "admin"]}><EnrollmentsPage /></ProtectedRoute>} />
