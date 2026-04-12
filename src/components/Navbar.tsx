@@ -11,7 +11,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const navLinks = [
-    { label: "Courses", href: "#courses" },
+    { label: "Curriculum", href: "#curriculum" },
     { label: "How It Works", href: "#how-it-works" },
     { label: "Testimonials", href: "#testimonials" },
     { label: "FAQ", href: "#faq" },
@@ -30,7 +30,7 @@ const Navbar = () => {
             <Sparkles className="w-5 h-5 text-primary-foreground" />
           </div>
           <span className="font-display text-xl font-bold text-foreground">
-            Tech<span className="text-gradient">Windows</span>
+            Tech<span className="text-gradient"> Windows</span>
           </span>
         </Link>
 
@@ -61,7 +61,7 @@ const Navbar = () => {
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild><Link to="/login">Log In</Link></Button>
-              <Button variant="hero" size="sm" asChild><Link to="/enroll">Enroll Now</Link></Button>
+              <Button variant="hero" size="sm" asChild><Link to="/enroll">Enrol My Child</Link></Button>
             </>
           )}
         </div>
@@ -109,7 +109,7 @@ const Navbar = () => {
                       <Link to="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
                     </Button>
                     <Button variant="hero" size="sm" className="flex-1" asChild>
-                      <Link to="/enroll" onClick={() => setMobileOpen(false)}>Enroll Now</Link>
+                      <Link to="/enroll" onClick={() => setMobileOpen(false)}>Enrol My Child</Link>
                     </Button>
                   </>
                 )}

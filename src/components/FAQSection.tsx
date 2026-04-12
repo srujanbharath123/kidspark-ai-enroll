@@ -3,28 +3,36 @@ import { motion } from "framer-motion";
 
 const faqs = [
   {
-    q: "What age group is this bootcamp for?",
-    a: "Our AI bootcamp is designed for children aged 8–16. We have different difficulty levels to match each child's abilities.",
+    q: "Does my child need their own laptop?",
+    a: "Yes — please bring a laptop or tablet with internet access. We'll take care of everything else.",
   },
   {
-    q: "Does my child need prior coding experience?",
-    a: "Not at all! Our courses start from the basics and gradually progress. We make learning fun and accessible for complete beginners.",
+    q: "Is any prior coding or tech experience required?",
+    a: "None at all. This bootcamp is designed for complete beginners. If your child is curious, they're ready.",
   },
   {
-    q: "What tools will my child learn?",
-    a: "Kids will learn ChatGPT, AI image generators (like DALL-E), basic coding with Python, and various no-code AI tools to build real projects.",
+    q: "Is this safe and supervised?",
+    a: "Absolutely. All sessions are conducted with trained instructors, and all AI tools used are appropriate for the age group. We've carefully reviewed everything your child will interact with.",
   },
   {
-    q: "Are the sessions live or pre-recorded?",
-    a: "All sessions are live and interactive with expert trainers. This ensures personalized attention and real-time Q&A for every student.",
+    q: "What age group is this best suited for?",
+    a: "We welcome kids from 8 to 16. Younger children (8–11) focus on creative, fun AI activities. Older students (12–16) take on more complex projects and independent work.",
   },
   {
-    q: "What is the refund policy?",
-    a: "We offer a full refund if you cancel before the first session. After the course begins, we provide a pro-rated refund based on completed sessions.",
+    q: "Will my child get a certificate?",
+    a: "Yes — every student who completes the bootcamp receives a Tech Windows AI Bootcamp certificate, plus a showcase of the project they built.",
   },
   {
-    q: "Will my child receive a certificate?",
-    a: "Yes! Every student receives a certificate of completion after finishing their course, which they can proudly share.",
+    q: "What if my child misses a session?",
+    a: "We understand things come up. Reach out to us and we'll work with you to arrange a make-up session or catch-up material.",
+  },
+  {
+    q: "How many kids are in each batch?",
+    a: "We keep batches small to ensure every child gets personal attention from the instructor. Batch sizes are limited — enrol early to secure your spot.",
+  },
+  {
+    q: "Is there a free trial or demo session available?",
+    a: "Yes! We periodically run free intro sessions so your child can experience the bootcamp before committing. Chat with us on WhatsApp to find the next one.",
   },
 ];
 

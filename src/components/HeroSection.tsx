@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Rocket, Brain, ArrowRight } from "lucide-react";
+import { Sparkles, Rocket, Brain, ArrowRight, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+
+const WHATSAPP_NUMBER = "919876543210";
+const WHATSAPP_MSG = encodeURIComponent("Hi! I'd like to know more about the Tech Windows AI Bootcamp for my child.");
 
 const FloatingIcon = ({ children, delay, className }: { children: React.ReactNode; delay: number; className?: string }) => (
   <motion.div
@@ -44,10 +47,9 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-5xl sm:text-6xl lg:text-7xl font-bold font-display leading-tight mb-6"
           >
-            Your Child's{" "}
-            <span className="text-gradient">AI Adventure</span>
-            <br />
-            Starts Here 🚀
+            Your Kid's Big Ideas{" "}
+            <br className="hidden sm:block" />
+            Deserve <span className="text-gradient">Real Tools</span>
           </motion.h1>
 
           <motion.p
@@ -56,7 +58,7 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Hands-on AI bootcamp where kids build real projects with ChatGPT, image generators, and coding tools. Fun, creative, and future-ready.
+            Tech Windows is a hands-on AI bootcamp for kids aged 8–16. They'll learn to use ChatGPT, Claude, and other real AI tools to build projects, solve problems, and bring their ideas to life — no coding experience needed, just curiosity.
           </motion.p>
 
           <motion.div
@@ -76,22 +78,41 @@ const HeroSection = () => {
               <>
                 <Button variant="hero" size="xl" asChild>
                   <Link to="/enroll">
-                    Enroll Now
+                    Enrol My Child Now
                     <ArrowRight className="w-5 h-5" />
                   </Link>
                 </Button>
                 <Button variant="hero-outline" size="xl" asChild>
-                  <a href="#courses">View Courses</a>
+                  <a href="#curriculum">See What We Teach</a>
                 </Button>
               </>
             )}
           </motion.div>
 
+          {!user && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.45 }}
+              className="mt-4"
+            >
+              <a
+                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MSG}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Questions? Chat with us on WhatsApp
+              </a>
+            </motion.div>
+          )}
+
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.7, delay: 0.5 }}
-            className="mt-12 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm text-muted-foreground"
+            className="mt-10 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm text-muted-foreground"
           >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-success" />

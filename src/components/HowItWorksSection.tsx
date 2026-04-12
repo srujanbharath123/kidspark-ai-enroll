@@ -4,26 +4,26 @@ import { UserPlus, BookOpen, CreditCard, Calendar } from "lucide-react";
 const steps = [
   {
     icon: <UserPlus className="w-6 h-6" />,
-    title: "Sign Up",
-    description: "Create your parent account and add your child's details.",
+    title: "Pick a Course",
+    description: "Browse our bootcamp options and choose the right fit for your child.",
     color: "bg-primary/10 text-primary",
   },
   {
     icon: <BookOpen className="w-6 h-6" />,
-    title: "Choose a Course",
-    description: "Pick from our crash course or month-long AI program.",
+    title: "Add Your Child's Details",
+    description: "Tell us your child's name and age — takes less than a minute.",
     color: "bg-secondary/10 text-secondary",
   },
   {
     icon: <CreditCard className="w-6 h-6" />,
-    title: "Make Payment",
-    description: "Secure checkout with instant confirmation email.",
+    title: "Secure Your Spot",
+    description: "Complete payment with instant confirmation. Early bird discounts available.",
     color: "bg-accent/10 text-accent",
   },
   {
     icon: <Calendar className="w-6 h-6" />,
-    title: "Book Sessions",
-    description: "Schedule live sessions with expert AI trainers.",
+    title: "Join Live Sessions",
+    description: "Your child starts learning with expert trainers in small, supervised batches.",
     color: "bg-success/10 text-success",
   },
 ];
