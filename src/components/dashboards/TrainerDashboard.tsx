@@ -172,7 +172,7 @@ const TrainerDashboard = () => {
       </h1>
       <p className="text-muted-foreground mb-8">Manage your sessions and availability</p>
 
-      <div className="grid sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid sm:grid-cols-4 gap-4 mb-8">
         {cards.map((card) => (
           <Link key={card.label} to={card.link} className="bg-card rounded-2xl border border-border/50 p-6 shadow-card hover:shadow-elevated transition-all hover:-translate-y-0.5">
             <div className={`w-10 h-10 rounded-xl ${card.color} flex items-center justify-center mb-3`}>
@@ -183,6 +183,44 @@ const TrainerDashboard = () => {
           </Link>
         ))}
       </div>
+
+      {/* Slot Enrollment Counts */}
+      {slotCapacities.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold font-display flex items-center gap-2 mb-3">
+            <Users className="w-5 h-5 text-primary" /> Enrollment per Slot
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {slotCapacities.map((slot) => {
+              const pct = slot.max_capacity > 0 ? Math.round((slot.booked_count / slot.max_capacity) * 100) : 0;
+              const isFull = slot.booked_count >= slot.max_capacity;
+              return (
+                <div key={slot.id} className="bg-card rounded-xl border border-border/50 p-4 shadow-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold">
+                      {new Date(slot.date + "T00:00").toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" })}
+                    </p>
+                    <Badge variant="outline" className={isFull ? "bg-accent/10 text-accent border-accent/20" : "bg-success/10 text-success border-success/20"}>
+                      {isFull ? "Full" : `${slot.booked_count}/${slot.max_capacity}`}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    <Clock className="w-3 h-3 inline mr-1" />
+                    {slot.start_time.slice(0, 5)} – {slot.end_time.slice(0, 5)}
+                  </p>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${isFull ? "bg-accent" : "bg-primary"}`}
+                      style={{ width: `${Math.min(pct, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{pct}% filled</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-4 mb-8">
         <Button variant="hero" size="lg" asChild className="h-auto py-4">
