@@ -117,6 +117,77 @@ const SessionsPage = () => {
 
   useEffect(() => { fetchData(); }, [user, role]);
 
+  // Fetch materials for visible sessions
+  useEffect(() => {
+    if (sessions.length === 0 || !user) return;
+    const fetchMaterials = async () => {
+      const sessionIds = sessions.map(s => s.id);
+      const { data } = await supabase
+        .from("session_materials")
+        .select("*")
+        .in("session_id", sessionIds)
+        .order("created_at", { ascending: false });
+      if (data) {
+        const grouped: Record<string, SessionMaterial[]> = {};
+        data.forEach((m: any) => {
+          if (!grouped[m.session_id]) grouped[m.session_id] = [];
+          grouped[m.session_id].push(m);
+        });
+        setSessionMaterials(grouped);
+      }
+    };
+    fetchMaterials();
+  }, [sessions, user]);
+
+  const handleUploadMaterial = async () => {
+    if (!materialForm || !user) return;
+    setUploadingMaterial(true);
+    try {
+      let fileUrl: string | null = null;
+      if (materialForm.file) {
+        const ext = materialForm.file.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("session-materials")
+          .upload(path, materialForm.file);
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = supabase.storage.from("session-materials").getPublicUrl(path);
+        fileUrl = urlData.publicUrl;
+      }
+      const { error } = await supabase.from("session_materials").insert({
+        session_id: materialForm.sessionId,
+        trainer_id: user.id,
+        title: materialForm.title,
+        description: materialForm.description || null,
+        file_url: fileUrl,
+        material_type: materialForm.type as any,
+      });
+      if (error) throw error;
+      toast({ title: "Material shared! ✅" });
+      setMaterialForm(null);
+      // Refresh materials
+      const { data } = await supabase.from("session_materials").select("*").eq("session_id", materialForm.sessionId).order("created_at", { ascending: false });
+      if (data) setSessionMaterials(prev => ({ ...prev, [materialForm.sessionId]: data }));
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingMaterial(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId: string, sessionId: string) => {
+    const { error } = await supabase.from("session_materials").delete().eq("id", materialId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Material removed" });
+      setSessionMaterials(prev => ({
+        ...prev,
+        [sessionId]: (prev[sessionId] || []).filter(m => m.id !== materialId),
+      }));
+    }
+  };
+
   const addSlot = async () => {
     if (!user || !date || !startTime || !endTime) return;
     const { error } = await supabase.from("trainer_availability").insert({
