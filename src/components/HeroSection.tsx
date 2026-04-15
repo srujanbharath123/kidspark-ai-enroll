@@ -7,15 +7,21 @@ import { useAuth } from "@/contexts/AuthContext";
 const WHATSAPP_NUMBER = "919876543210";
 const WHATSAPP_MSG = encodeURIComponent("Hi! I'd like to know more about the Tech Windows AI Bootcamp for my child.");
 
-const FloatingIcon = ({ children, delay, className }: { children: React.ReactNode; delay: number; className?: string }) => (
+const FloatingIcon = ({
+  children,
+  delay,
+  className,
+}: {
+  children: React.ReactNode;
+  delay: number;
+  className?: string;
+}) => (
   <motion.div
     className={`absolute ${className}`}
     animate={{ y: [-8, 8, -8] }}
     transition={{ duration: 3, repeat: Infinity, delay, ease: "easeInOut" }}
   >
-    <div className="w-14 h-14 rounded-2xl bg-card shadow-elevated flex items-center justify-center">
-      {children}
-    </div>
+    <div className="w-14 h-14 rounded-2xl bg-card shadow-elevated flex items-center justify-center">{children}</div>
   </motion.div>
 );
 
@@ -30,7 +36,7 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
@@ -39,7 +45,7 @@ const HeroSection = () => {
               <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-primary">Ages 8–16 · Limited Seats Available</span>
             </div>
-          </motion.div>
+          </motion.div> */}
 
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
@@ -47,8 +53,7 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-5xl sm:text-6xl lg:text-7xl font-bold font-display leading-tight mb-6"
           >
-            Your Child's AI Adventure{" "}
-            <br className="hidden sm:block" />
+            Your Child's AI Adventure <br className="hidden sm:block" />
             <span className="text-gradient">Starts Here</span>
           </motion.h1>
 
@@ -58,7 +63,9 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Tech Windows is a hands-on AI bootcamp for kids aged 8–16. They'll learn to use ChatGPT, Claude, and other real AI tools to build projects, solve problems, and bring their ideas to life — no coding experience needed, just curiosity.
+            Tech Windows is a hands-on AI bootcamp for kids aged 8–16. They'll learn to use ChatGPT, Claude, and other
+            real AI tools to build projects, solve problems, and bring their ideas to life — no coding experience
+            needed, just curiosity.
           </motion.p>
 
           <motion.div
