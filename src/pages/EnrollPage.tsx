@@ -8,8 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Check, CreditCard, Loader2, ArrowLeft, ArrowRight,
-  Sparkles, GraduationCap, User, Calendar, Clock, Mail, ShieldCheck,
+  Check,
+  CreditCard,
+  Loader2,
+  ArrowLeft,
+  ArrowRight,
+  Sparkles,
+  GraduationCap,
+  User,
+  Calendar,
+  Clock,
+  Mail,
+  ShieldCheck,
 } from "lucide-react";
 
 interface Course {
@@ -95,7 +105,10 @@ const EnrollPage = () => {
         const preselect = searchParams.get("course");
         if (preselect) {
           const found = data.find((c) => c.id === preselect);
-          if (found) { setSelectedCourse(found); setStep(1); }
+          if (found) {
+            setSelectedCourse(found);
+            setStep(1);
+          }
         }
       }
       setLoading(false);
@@ -130,7 +143,7 @@ const EnrollPage = () => {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name")
-        .in("user_id", trainerIds.length ? trainerIds : ['none']);
+        .in("user_id", trainerIds.length ? trainerIds : ["none"]);
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
       setAvailableSlots(filtered.map((s) => ({ ...s, trainer_name: profileMap.get(s.trainer_id) || "Trainer" })));
     } else {
@@ -139,11 +152,12 @@ const EnrollPage = () => {
     setSlotsLoading(false);
   };
 
-  const effectivePrice = selectedCourse ? selectedCourse.discount_price ?? selectedCourse.price : 0;
+  const effectivePrice = selectedCourse ? (selectedCourse.discount_price ?? selectedCourse.price) : 0;
 
   const canProceedStep2 =
     childName.trim().length >= 2 &&
-    Number(childAge) >= 4 && Number(childAge) <= 18 &&
+    Number(childAge) >= 4 &&
+    Number(childAge) <= 18 &&
     childClass.trim().length >= 1 &&
     childSchool.trim().length >= 2 &&
     parentName.trim().length >= 2 &&
@@ -161,7 +175,11 @@ const EnrollPage = () => {
   const handleSendAuthOtp = async () => {
     const formattedPhone = authPhone.startsWith("+") ? authPhone : `+91${authPhone}`;
     if (!/^\+\d{10,15}$/.test(formattedPhone)) {
-      toast({ title: "Invalid phone", description: "Enter a valid phone number with country code", variant: "destructive" });
+      toast({
+        title: "Invalid phone",
+        description: "Enter a valid phone number with country code",
+        variant: "destructive",
+      });
       return;
     }
     setAuthLoading(true);
@@ -189,7 +207,9 @@ const EnrollPage = () => {
       await verifyOtp(formattedPhone, authOtp, parentName, "parent");
       toast({ title: "Verified! 🎉" });
       // Update phone on profile
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.user && parentPhone) {
         await supabase.from("profiles").update({ phone: parentPhone.trim() }).eq("user_id", session.user.id);
       }
@@ -212,7 +232,9 @@ const EnrollPage = () => {
   }, []);
 
   const handleRazorpayPayment = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session?.user) {
       toast({ title: "Not authenticated", description: "Please login first.", variant: "destructive" });
       setStep(3);
@@ -221,7 +243,11 @@ const EnrollPage = () => {
     if (!selectedCourse) return;
 
     if (!window.Razorpay) {
-      toast({ title: "Payment gateway loading...", description: "Please try again in a moment.", variant: "destructive" });
+      toast({
+        title: "Payment gateway loading...",
+        description: "Please try again in a moment.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -252,33 +278,43 @@ const EnrollPage = () => {
         handler: async (response) => {
           // Step 3: Verify payment and create enrollment
           try {
-            const { data: verifyData, error: verifyError } = await supabase.functions.invoke("verify-enrollment-payment", {
-              body: {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                course_id: selectedCourse.id,
-                child_name: childName.trim(),
-                child_age: Number(childAge),
-                child_class: childClass.trim(),
-                child_school: childSchool.trim(),
-                slot_id: selectedSlot?.id || null,
-                trainer_id: selectedSlot?.trainer_id || null,
-                slot_date: selectedSlot?.date || null,
-                slot_start_time: selectedSlot?.start_time || null,
-                slot_end_time: selectedSlot?.end_time || null,
+            const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
+              "verify-enrollment-payment",
+              {
+                body: {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  course_id: selectedCourse.id,
+                  child_name: childName.trim(),
+                  child_age: Number(childAge),
+                  child_class: childClass.trim(),
+                  child_school: childSchool.trim(),
+                  slot_id: selectedSlot?.id || null,
+                  trainer_id: selectedSlot?.trainer_id || null,
+                  slot_date: selectedSlot?.date || null,
+                  slot_start_time: selectedSlot?.start_time || null,
+                  slot_end_time: selectedSlot?.end_time || null,
+                },
               },
-            });
+            );
 
             if (verifyError || !verifyData?.success) {
               throw new Error("Payment verification failed");
             }
 
             setPaymentDone(true);
-            toast({ title: "Enrollment successful! 🎉", description: `${childName} is enrolled in ${selectedCourse.title}.` });
+            toast({
+              title: "Enrollment successful! 🎉",
+              description: `${childName} is enrolled in ${selectedCourse.title}.`,
+            });
             setTimeout(() => navigate("/dashboard"), 2000);
           } catch {
-            toast({ title: "Payment verified but enrollment failed", description: "Please contact support.", variant: "destructive" });
+            toast({
+              title: "Payment verified but enrollment failed",
+              description: "Please contact support.",
+              variant: "destructive",
+            });
           } finally {
             setPaying(false);
           }
@@ -312,7 +348,10 @@ const EnrollPage = () => {
       {/* Header */}
       <div className="border-b border-border/50 bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             <ArrowLeft className="w-4 h-4" /> Back to Home
           </Link>
           <h1 className="text-lg font-bold font-display flex items-center gap-2">
@@ -331,14 +370,22 @@ const EnrollPage = () => {
             const isCurrent = i === step && !(i === 3 && !!user && step > 3);
             return (
               <div key={label} className="flex items-center gap-1 sm:gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                  isCompleted ? "bg-primary text-primary-foreground"
-                    : isCurrent ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
-                    : "bg-muted text-muted-foreground"
-                }`}>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    isCompleted
+                      ? "bg-primary text-primary-foreground"
+                      : isCurrent
+                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
                   {isCompleted ? <Check className="w-4 h-4" /> : i + 1}
                 </div>
-                <span className={`text-xs font-medium hidden sm:block ${isCurrent ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
+                <span
+                  className={`text-xs font-medium hidden sm:block ${isCurrent ? "text-foreground" : "text-muted-foreground"}`}
+                >
+                  {label}
+                </span>
                 {i < STEPS.length - 1 && <div className="w-6 sm:w-12 h-px bg-border" />}
               </div>
             );
@@ -347,14 +394,17 @@ const EnrollPage = () => {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 pb-16">
-
         {/* Step 0: Select Course */}
         {step === 0 && (
           <div>
             <h2 className="text-2xl font-bold font-display mb-2 text-center">Choose a Course</h2>
-            <p className="text-sm text-muted-foreground text-center mb-8">Pick the perfect AI bootcamp for your child</p>
+            <p className="text-sm text-muted-foreground text-center mb-8">
+              Pick the perfect AI bootcamp for your child
+            </p>
             {loading ? (
-              <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+              <div className="flex justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
             ) : courses.length === 0 ? (
               <div className="bg-card rounded-2xl border border-border/50 p-12 text-center shadow-card">
                 <p className="text-muted-foreground">No courses available right now.</p>
@@ -365,24 +415,39 @@ const EnrollPage = () => {
                   const price = course.discount_price ?? course.price;
                   const isSelected = selectedCourse?.id === course.id;
                   return (
-                    <button key={course.id} onClick={() => setSelectedCourse(course)}
+                    <button
+                      key={course.id}
+                      onClick={() => setSelectedCourse(course)}
                       className={`text-left bg-card rounded-2xl border-2 p-6 shadow-card transition-all hover:shadow-elevated ${
-                        isSelected ? "border-primary ring-2 ring-primary/20" : "border-border/50 hover:border-primary/30"
-                      }`}>
+                        isSelected
+                          ? "border-primary ring-2 ring-primary/20"
+                          : "border-border/50 hover:border-primary/30"
+                      }`}
+                    >
                       <div className="flex items-start justify-between mb-3">
                         <h3 className="font-bold font-display text-lg">{course.title}</h3>
-                        {isSelected && <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><Check className="w-3.5 h-3.5 text-primary-foreground" /></div>}
+                        {isSelected && (
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                          </div>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{course.description}</p>
                       <div className="flex items-center gap-3">
                         <span className="text-xl font-bold text-primary">₹{price}</span>
-                        {course.discount_price && <span className="text-sm text-muted-foreground line-through">₹{course.price}</span>}
-                        <Badge variant="outline" className="ml-auto text-xs">{course.duration}</Badge>
+                        {course.discount_price && (
+                          <span className="text-sm text-muted-foreground line-through">₹{course.price}</span>
+                        )}
+                        <Badge variant="outline" className="ml-auto text-xs">
+                          {course.duration}
+                        </Badge>
                       </div>
                       {course.features && course.features.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-1.5">
                           {course.features.slice(0, 3).map((f, i) => (
-                            <Badge key={i} variant="secondary" className="text-xs font-normal">{f}</Badge>
+                            <Badge key={i} variant="secondary" className="text-xs font-normal">
+                              {f}
+                            </Badge>
                           ))}
                         </div>
                       )}
@@ -410,46 +475,99 @@ const EnrollPage = () => {
               </div>
               <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Student Info</h3>
               <div>
-                <Label htmlFor="childName" className="text-sm font-semibold">Student Full Name *</Label>
-                <Input id="childName" value={childName} onChange={(e) => setChildName(e.target.value)}
-                  placeholder="e.g. Aarav Sharma" className="mt-1.5 rounded-xl" maxLength={100} />
+                <Label htmlFor="childName" className="text-sm font-semibold">
+                  Student Full Name *
+                </Label>
+                <Input
+                  id="childName"
+                  value={childName}
+                  onChange={(e) => setChildName(e.target.value)}
+                  placeholder="e.g. Aarav Sharma"
+                  className="mt-1.5 rounded-xl"
+                  maxLength={100}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="childAge" className="text-sm font-semibold">Age *</Label>
-                  <Input id="childAge" type="number" min={4} max={18} value={childAge}
-                    onChange={(e) => setChildAge(e.target.value)} placeholder="e.g. 10" className="mt-1.5 rounded-xl" />
+                  <Label htmlFor="childAge" className="text-sm font-semibold">
+                    Age *
+                  </Label>
+                  <Input
+                    id="childAge"
+                    type="number"
+                    min={4}
+                    max={18}
+                    value={childAge}
+                    onChange={(e) => setChildAge(e.target.value)}
+                    placeholder="e.g. 10"
+                    className="mt-1.5 rounded-xl"
+                  />
                 </div>
                 <div>
-                  <Label htmlFor="childClass" className="text-sm font-semibold">Class / Grade *</Label>
-                  <Input id="childClass" value={childClass} onChange={(e) => setChildClass(e.target.value)}
-                    placeholder="e.g. 5th" className="mt-1.5 rounded-xl" maxLength={20} />
+                  <Label htmlFor="childClass" className="text-sm font-semibold">
+                    Class / Grade *
+                  </Label>
+                  <Input
+                    id="childClass"
+                    value={childClass}
+                    onChange={(e) => setChildClass(e.target.value)}
+                    placeholder="e.g. 5th"
+                    className="mt-1.5 rounded-xl"
+                    maxLength={20}
+                  />
                 </div>
               </div>
               <div>
-                <Label htmlFor="childSchool" className="text-sm font-semibold">School Name *</Label>
-                <Input id="childSchool" value={childSchool} onChange={(e) => setChildSchool(e.target.value)}
-                  placeholder="e.g. Delhi Public School" className="mt-1.5 rounded-xl" maxLength={150} />
+                <Label htmlFor="childSchool" className="text-sm font-semibold">
+                  School Name *
+                </Label>
+                <Input
+                  id="childSchool"
+                  value={childSchool}
+                  onChange={(e) => setChildSchool(e.target.value)}
+                  placeholder="e.g. Delhi Public School"
+                  className="mt-1.5 rounded-xl"
+                  maxLength={150}
+                />
               </div>
               <div className="border-t border-border/50 pt-5">
                 <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Parent Info</h3>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="parentName" className="text-sm font-semibold">Parent Full Name *</Label>
-                    <Input id="parentName" value={parentName} onChange={(e) => setParentName(e.target.value)}
-                      placeholder="e.g. Rajesh Sharma" className="mt-1.5 rounded-xl" maxLength={100} disabled={!!user} />
+                    <Label htmlFor="parentName" className="text-sm font-semibold">
+                      Email *
+                    </Label>
+                    <Input
+                      id="parentName"
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                      placeholder="srujanbharath@gmaiul.com"
+                      className="mt-1.5 rounded-xl"
+                      maxLength={100}
+                      disabled={!!user}
+                    />
                   </div>
                   <div>
-                    <Label htmlFor="parentPhone" className="text-sm font-semibold">Phone Number *</Label>
-                    <Input id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)}
-                      placeholder="e.g. 9876543210" className="mt-1.5 rounded-xl" maxLength={15}
-                      disabled={!!user && !!profile?.phone} />
+                    <Label htmlFor="parentPhone" className="text-sm font-semibold">
+                      Phone Number *
+                    </Label>
+                    <Input
+                      id="parentPhone"
+                      value={parentPhone}
+                      onChange={(e) => setParentPhone(e.target.value)}
+                      placeholder="e.g. 9876543210"
+                      className="mt-1.5 rounded-xl"
+                      maxLength={15}
+                      disabled={!!user && !!profile?.phone}
+                    />
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex justify-between mt-8">
-              <Button variant="outline" onClick={() => setStep(0)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
+              <Button variant="outline" onClick={() => setStep(0)}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
               <Button variant="hero" onClick={() => setStep(2)} disabled={!canProceedStep2} className="px-8">
                 Book a Slot <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
@@ -461,9 +579,13 @@ const EnrollPage = () => {
         {step === 2 && (
           <div className="max-w-lg mx-auto">
             <h2 className="text-2xl font-bold font-display mb-2 text-center">Book a Time Slot</h2>
-            <p className="text-sm text-muted-foreground text-center mb-8">Choose when your child will attend the first session</p>
+            <p className="text-sm text-muted-foreground text-center mb-8">
+              Choose when your child will attend the first session
+            </p>
             {slotsLoading ? (
-              <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+              <div className="flex justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
             ) : availableSlots.length === 0 ? (
               <div className="bg-card rounded-2xl border border-border/50 p-8 text-center shadow-card">
                 <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -476,17 +598,27 @@ const EnrollPage = () => {
                   <div key={date}>
                     <h3 className="text-sm font-bold mb-2 flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-primary" />
-                      {new Date(date + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                      {new Date(date + "T00:00:00").toLocaleDateString("en-IN", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {slots.map((slot) => {
                         const isSelected = selectedSlot?.id === slot.id;
                         const spotsLeft = slot.max_capacity - slot.booked_count;
                         return (
-                          <button key={slot.id} onClick={() => setSelectedSlot(isSelected ? null : slot)}
+                          <button
+                            key={slot.id}
+                            onClick={() => setSelectedSlot(isSelected ? null : slot)}
                             className={`bg-card rounded-xl border-2 p-4 text-left transition-all ${
-                              isSelected ? "border-primary ring-2 ring-primary/20" : "border-border/50 hover:border-primary/30"
-                            }`}>
+                              isSelected
+                                ? "border-primary ring-2 ring-primary/20"
+                                : "border-border/50 hover:border-primary/30"
+                            }`}
+                          >
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-sm font-semibold flex items-center gap-1.5">
@@ -495,13 +627,21 @@ const EnrollPage = () => {
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-0.5">with {slot.trainer_name}</p>
                                 <p className="text-xs mt-1">
-                                  <span className={spotsLeft <= 10 ? "text-destructive font-semibold" : "text-success font-medium"}>
+                                  <span
+                                    className={
+                                      spotsLeft <= 10 ? "text-destructive font-semibold" : "text-success font-medium"
+                                    }
+                                  >
                                     {spotsLeft} spot{spotsLeft !== 1 ? "s" : ""} left
                                   </span>
                                   <span className="text-muted-foreground"> of {slot.max_capacity}</span>
                                 </p>
                               </div>
-                              {isSelected && <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><Check className="w-3.5 h-3.5 text-primary-foreground" /></div>}
+                              {isSelected && (
+                                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                                  <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                                </div>
+                              )}
                             </div>
                           </button>
                         );
@@ -512,7 +652,9 @@ const EnrollPage = () => {
               </div>
             )}
             <div className="flex justify-between mt-8">
-              <Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
+              <Button variant="outline" onClick={() => setStep(1)}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
               <Button variant="hero" onClick={handleAfterSlot} className="px-8">
                 {selectedSlot ? "Continue" : "Skip Slot"} <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
@@ -550,8 +692,20 @@ const EnrollPage = () => {
                     />
                     <p className="text-xs text-muted-foreground mt-1">Dummy: +919999999999</p>
                   </div>
-                  <Button variant="hero" size="lg" className="w-full" onClick={handleSendAuthOtp} disabled={authLoading}>
-                    {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : "Send OTP"}
+                  <Button
+                    variant="hero"
+                    size="lg"
+                    className="w-full"
+                    onClick={handleSendAuthOtp}
+                    disabled={authLoading}
+                  >
+                    {authLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Sending...
+                      </>
+                    ) : (
+                      "Send OTP"
+                    )}
                   </Button>
                 </div>
               ) : (
@@ -571,10 +725,22 @@ const EnrollPage = () => {
                     )}
                   </div>
                   <Button variant="hero" size="lg" className="w-full" type="submit" disabled={authLoading}>
-                    {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</> : "Verify & Continue"}
+                    {authLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Verifying...
+                      </>
+                    ) : (
+                      "Verify & Continue"
+                    )}
                   </Button>
-                  <button type="button" onClick={() => { setAuthOtpSent(false); setAuthOtp(""); }}
-                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthOtpSent(false);
+                      setAuthOtp("");
+                    }}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Change phone number
                   </button>
                 </form>
@@ -582,7 +748,9 @@ const EnrollPage = () => {
             </div>
 
             <div className="flex justify-start mt-8">
-              <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
+              <Button variant="outline" onClick={() => setStep(2)}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              </Button>
             </div>
           </div>
         )}
@@ -625,7 +793,9 @@ const EnrollPage = () => {
                     </div>
                     <div>
                       <h3 className="font-bold">{childName}</h3>
-                      <p className="text-xs text-muted-foreground">Age {childAge} · Class {childClass} · {childSchool}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Age {childAge} · Class {childClass} · {childSchool}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -639,9 +809,15 @@ const EnrollPage = () => {
                       </div>
                       <div>
                         <h3 className="font-bold">
-                          {new Date(selectedSlot.date + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", month: "short", day: "numeric" })}
+                          {new Date(selectedSlot.date + "T00:00:00").toLocaleDateString("en-IN", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })}
                         </h3>
-                        <p className="text-xs text-muted-foreground">{selectedSlot.start_time} – {selectedSlot.end_time} · with {selectedSlot.trainer_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedSlot.start_time} – {selectedSlot.end_time} · with {selectedSlot.trainer_name}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -660,8 +836,21 @@ const EnrollPage = () => {
                   </div>
                 </div>
 
-                <Button variant="hero" className="w-full h-12 text-base" onClick={handleRazorpayPayment} disabled={paying}>
-                  {paying ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><CreditCard className="w-5 h-5" /> Pay ₹{effectivePrice}</>}
+                <Button
+                  variant="hero"
+                  className="w-full h-12 text-base"
+                  onClick={handleRazorpayPayment}
+                  disabled={paying}
+                >
+                  {paying ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" /> Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5" /> Pay ₹{effectivePrice}
+                    </>
+                  )}
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
@@ -672,7 +861,9 @@ const EnrollPage = () => {
 
             {!paymentDone && (
               <div className="flex justify-start mt-8">
-                <Button variant="outline" onClick={() => setStep(user ? 2 : 3)}><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button>
+                <Button variant="outline" onClick={() => setStep(user ? 2 : 3)}>
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
               </div>
             )}
           </div>
