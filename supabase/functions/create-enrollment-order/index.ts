@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         amount: Math.round(amount * 100),
         currency,
-        receipt: `enroll_${course_id}_${Date.now()}`,
+        receipt: `enr_${Date.now()}`,
       }),
     });
 
