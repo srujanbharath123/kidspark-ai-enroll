@@ -201,7 +201,17 @@ const EnrollPage = () => {
     }
   };
 
-  const handleDummyPayment = async () => {
+  // Load Razorpay SDK
+  useEffect(() => {
+    if (!document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  const handleRazorpayPayment = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       toast({ title: "Not authenticated", description: "Please login first.", variant: "destructive" });
@@ -210,82 +220,83 @@ const EnrollPage = () => {
     }
     if (!selectedCourse) return;
 
+    if (!window.Razorpay) {
+      toast({ title: "Payment gateway loading...", description: "Please try again in a moment.", variant: "destructive" });
+      return;
+    }
+
     setPaying(true);
     try {
-      // Create child record
-      const { data: existingChild } = await supabase
-        .from("children")
-        .select("id")
-        .eq("parent_id", session.user.id)
-        .eq("name", childName.trim())
-        .maybeSingle();
+      // Step 1: Create Razorpay order via edge function
+      const { data, error } = await supabase.functions.invoke("create-enrollment-order", {
+        body: {
+          amount: effectivePrice,
+          course_id: selectedCourse.id,
+          child_name: childName.trim(),
+          child_age: Number(childAge),
+        },
+      });
 
-      let childId = existingChild?.id;
-      if (!childId) {
-        const { data: newChild, error: childErr } = await supabase
-          .from("children")
-          .insert({
-            parent_id: session.user.id,
-            name: childName.trim(),
-            age: Number(childAge),
-            class: childClass.trim(),
-            school: childSchool.trim(),
-          })
-          .select("id")
-          .single();
-        if (childErr) throw childErr;
-        childId = newChild.id;
+      if (error || !data?.order_id) {
+        throw new Error(error?.message || "Failed to create payment order");
       }
 
-      // Create enrollment
-      const { error: enrollErr } = await supabase
-        .from("enrollments")
-        .insert({
-          parent_id: session.user.id,
-          child_id: childId,
-          course_id: selectedCourse.id,
-          payment_status: "completed",
-          payment_id: `DEMO_${Date.now()}`,
-          order_id: `DEMO_ORDER_${Date.now()}`,
-        });
-      if (enrollErr) throw enrollErr;
+      // Step 2: Open Razorpay checkout
+      const options: RazorpayOptions = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: data.currency,
+        name: "TechWindows AI Bootcamp",
+        description: `Enrollment: ${selectedCourse.title}`,
+        order_id: data.order_id,
+        handler: async (response) => {
+          // Step 3: Verify payment and create enrollment
+          try {
+            const { data: verifyData, error: verifyError } = await supabase.functions.invoke("verify-enrollment-payment", {
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                course_id: selectedCourse.id,
+                child_name: childName.trim(),
+                child_age: Number(childAge),
+                child_class: childClass.trim(),
+                child_school: childSchool.trim(),
+                slot_id: selectedSlot?.id || null,
+                trainer_id: selectedSlot?.trainer_id || null,
+                slot_date: selectedSlot?.date || null,
+                slot_start_time: selectedSlot?.start_time || null,
+                slot_end_time: selectedSlot?.end_time || null,
+              },
+            });
 
-      // Book slot if selected
-      if (selectedSlot) {
-        await supabase.from("sessions").insert({
-          parent_id: session.user.id,
-          trainer_id: selectedSlot.trainer_id,
-          child_id: childId,
-          course_id: selectedCourse.id,
-          availability_id: selectedSlot.id,
-          date: selectedSlot.date,
-          start_time: selectedSlot.start_time,
-          end_time: selectedSlot.end_time,
-          status: "pending",
-        });
-        // Increment booked count and mark full if at capacity
-        const { data: slotData } = await supabase
-          .from("trainer_availability")
-          .select("booked_count, max_capacity")
-          .eq("id", selectedSlot.id)
-          .single();
-        const newCount = (slotData?.booked_count || 0) + 1;
-        await supabase
-          .from("trainer_availability")
-          .update({ 
-            booked_count: newCount,
-            is_booked: newCount >= (slotData?.max_capacity || 100)
-          })
-          .eq("id", selectedSlot.id);
-      }
+            if (verifyError || !verifyData?.success) {
+              throw new Error("Payment verification failed");
+            }
 
-      setPaymentDone(true);
-      toast({ title: "Enrollment successful! 🎉", description: `${childName} is enrolled in ${selectedCourse.title}.` });
+            setPaymentDone(true);
+            toast({ title: "Enrollment successful! 🎉", description: `${childName} is enrolled in ${selectedCourse.title}.` });
+            setTimeout(() => navigate("/dashboard"), 2000);
+          } catch {
+            toast({ title: "Payment verified but enrollment failed", description: "Please contact support.", variant: "destructive" });
+          } finally {
+            setPaying(false);
+          }
+        },
+        prefill: {
+          name: parentName || profile?.full_name || "",
+          contact: parentPhone || profile?.phone || "",
+        },
+        theme: { color: "#6366f1" },
+        modal: {
+          ondismiss: () => setPaying(false),
+        },
+      };
 
-      setTimeout(() => navigate("/dashboard"), 2000);
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (err: any) {
-      toast({ title: "Enrollment failed", description: err.message, variant: "destructive" });
-    } finally {
+      toast({ title: "Payment failed", description: err.message, variant: "destructive" });
       setPaying(false);
     }
   };
@@ -649,12 +660,12 @@ const EnrollPage = () => {
                   </div>
                 </div>
 
-                <Button variant="hero" className="w-full h-12 text-base" onClick={handleDummyPayment} disabled={paying}>
-                  {paying ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><CreditCard className="w-5 h-5" /> Pay ₹{effectivePrice} (Demo)</>}
+                <Button variant="hero" className="w-full h-12 text-base" onClick={handleRazorpayPayment} disabled={paying}>
+                  {paying ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><CreditCard className="w-5 h-5" /> Pay ₹{effectivePrice}</>}
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  🔒 This is a demo payment — no real charges will be made
+                  🔒 Secured by Razorpay. Your payment is safe and encrypted.
                 </p>
               </div>
             )}
