@@ -541,7 +541,7 @@ const EnrollPage = () => {
                       id="parentName"
                       value={parentName}
                       onChange={(e) => setParentName(e.target.value)}
-                      placeholder="srujanbharath@gmaiul.com"
+                      placeholder="srujanbharath@gmail.com"
                       className="mt-1.5 rounded-xl"
                       maxLength={100}
                       disabled={!!user}
