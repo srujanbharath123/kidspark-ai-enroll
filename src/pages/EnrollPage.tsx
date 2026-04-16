@@ -531,7 +531,7 @@ const EnrollPage = () => {
                 />
               </div>
               <div className="border-t border-border/50 pt-5">
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Parent Info</h3>
+                {/* <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Parent Info</h3> */}
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="parentName" className="text-sm font-semibold">
@@ -544,7 +544,6 @@ const EnrollPage = () => {
                       placeholder="srujanbharath@gmail.com"
                       className="mt-1.5 rounded-xl"
                       maxLength={100}
-                      disabled={!!user}
                     />
                   </div>
                   <div>
@@ -557,8 +556,7 @@ const EnrollPage = () => {
                       onChange={(e) => setParentPhone(e.target.value)}
                       placeholder="e.g. 9876543210"
                       className="mt-1.5 rounded-xl"
-                      maxLength={15}
-                      disabled={!!user && !!profile?.phone}
+                      maxLength={10}
                     />
                   </div>
                 </div>
