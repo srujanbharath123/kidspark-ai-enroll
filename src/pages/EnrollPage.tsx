@@ -660,12 +660,12 @@ const EnrollPage = () => {
                   </div>
                 </div>
 
-                <Button variant="hero" className="w-full h-12 text-base" onClick={handleDummyPayment} disabled={paying}>
-                  {paying ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><CreditCard className="w-5 h-5" /> Pay ₹{effectivePrice} (Demo)</>}
+                <Button variant="hero" className="w-full h-12 text-base" onClick={handleRazorpayPayment} disabled={paying}>
+                  {paying ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><CreditCard className="w-5 h-5" /> Pay ₹{effectivePrice}</>}
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  🔒 This is a demo payment — no real charges will be made
+                  🔒 Secured by Razorpay. Your payment is safe and encrypted.
                 </p>
               </div>
             )}
