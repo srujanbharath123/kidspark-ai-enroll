@@ -14,7 +14,7 @@ const Navbar = () => {
     { label: "Courses", href: "#courses" },
     { label: "Curriculum", href: "#curriculum" },
     { label: "How It Works", href: "#how-it-works" },
-    { label: "FAQ", href: "#faq" },
+    // { label: "FAQ", href: "#faq" },
   ];
 
   const handleSignOut = async () => {
@@ -54,22 +54,27 @@ const Navbar = () => {
                 <span className="ml-1 text-xs capitalize text-primary">({role})</span>
               </span>
               <Button variant="hero" size="sm" asChild>
-                <Link to="/dashboard"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
+                <Link to="/dashboard">
+                  <LayoutDashboard className="w-4 h-4" /> Dashboard
+                </Link>
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>Sign Out</Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                Sign Out
+              </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" asChild><Link to="/login">Log In</Link></Button>
-              <Button variant="hero" size="sm" asChild><Link to="/enroll">Enroll Now</Link></Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/login">Log In</Link>
+              </Button>
+              <Button variant="hero" size="sm" asChild>
+                <Link to="/enroll">Enroll Now</Link>
+              </Button>
             </>
           )}
         </div>
 
-        <button
-          className="md:hidden text-foreground"
-          onClick={() => setMobileOpen(!mobileOpen)}
-        >
+        <button className="md:hidden text-foreground" onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
@@ -97,19 +102,33 @@ const Navbar = () => {
                 {user ? (
                   <>
                     <Button variant="hero" size="sm" className="flex-1" asChild>
-                      <Link to="/dashboard" onClick={() => setMobileOpen(false)}>Dashboard</Link>
+                      <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
+                        Dashboard
+                      </Link>
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { handleSignOut(); setMobileOpen(false); }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        handleSignOut();
+                        setMobileOpen(false);
+                      }}
+                    >
                       Sign Out
                     </Button>
                   </>
                 ) : (
                   <>
                     <Button variant="outline" size="sm" className="flex-1" asChild>
-                      <Link to="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
+                      <Link to="/login" onClick={() => setMobileOpen(false)}>
+                        Log In
+                      </Link>
                     </Button>
                     <Button variant="hero" size="sm" className="flex-1" asChild>
-                      <Link to="/enroll" onClick={() => setMobileOpen(false)}>Enroll Now</Link>
+                      <Link to="/enroll" onClick={() => setMobileOpen(false)}>
+                        Enroll Now
+                      </Link>
                     </Button>
                   </>
                 )}
