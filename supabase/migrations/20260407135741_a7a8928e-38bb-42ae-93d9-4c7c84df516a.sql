@@ -183,7 +183,7 @@ INSERT INTO public.courses (title, description, duration, price, discount_price,
   '3 Days',
   10000,
   2500,
-  ARRAY['Introduction to AI & ChatGPT', 'Create AI Art & Images', 'Build a Mini AI Project', 'Certificate of Completion', 'Live Q&A with Trainer']
+  ARRAY['AI Basics Made Simple – Understand Artificial Intelligence in a fun and easy way', 'Hands-on AI Tools – Learn to use tools like ChatGPT, image generators & voice AI', 'Creative AI Projects – Create posters, videos, stories, and games using AI', 'Problem-Solving Skills – Use AI to solve real-world problems','Future Tech Awareness – Get introduced to careers in AI, robotics & technology', 'Live Q&A with Trainer']
 ),
 (
   '1-Month AI Program',
